@@ -15,6 +15,8 @@
   button { background: #2b4c7e; color: white; cursor: pointer; }
   button:hover { background: #1e355c; }
   .result-box { background: #fff; border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 5px; }
+  .ignored { color: #b22222; }
+  .counted { color: #228B22; }
 </style>
 </head>
 <body>
@@ -48,35 +50,54 @@ function calculate() {
   const rebateDate = new Date(rebateInput.replace(" ", "T"));
   if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
 
-  // Calculate end date based on tier
+  // Determine end date based on tier
   const endDate = new Date(rebateDate);
   endDate.setDate(rebateDate.getDate() + (tier === "2" ? 7 : 9));
 
-  // Split purchases
   const purchaseLines = purchasesRaw.split(/\n+/);
-  let count = 0;
+  const validDays = new Set();
+  const countedPurchases = [];
+  const ignoredPurchases = [];
 
   for (let line of purchaseLines) {
     line = line.trim();
     if (!line) continue;
     let dt = new Date(line.replace(" ", "T"));
-    if (isNaN(dt)) continue;
+    if (isNaN(dt)) {
+      ignoredPurchases.push(line + " (invalid format)");
+      continue;
+    }
 
-    // Adjust time: <= 08:00:00 → previous day
     const hours = dt.getHours(), mins = dt.getMinutes(), secs = dt.getSeconds();
-    if (hours < 8 || (hours === 8 && mins === 0 && secs === 0)) {
+    const secondsSinceMidnight = hours * 3600 + mins * 60 + secs;
+
+    // 00:00:01–08:00:00 → previous day
+    if (secondsSinceMidnight >= 1 && secondsSinceMidnight <= 8 * 3600) {
       dt.setDate(dt.getDate() - 1);
     }
 
-    // Check if within rebate range
-    if (dt >= rebateDate && dt <= endDate) {
-      count++;
+    // Convert to just date (YYYY-MM-DD)
+    const dateOnly = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+
+    const rebateDayStart = new Date(rebateDate.getFullYear(), rebateDate.getMonth(), rebateDate.getDate());
+    const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+    if (dateOnly >= rebateDayStart && dateOnly <= endDay) {
+      validDays.add(dateOnly.toDateString());
+      countedPurchases.push(line);
+    } else {
+      ignoredPurchases.push(line);
     }
   }
 
+  const countedDaysArray = Array.from(validDays).sort((a,b) => new Date(a) - new Date(b));
+
   document.getElementById("result").innerHTML = `
     <b>Rebate Range:</b> ${rebateDate.toLocaleString()} → ${endDate.toLocaleString()}<br>
-    <b>Valid Purchases:</b> ${count}
+    <b>Valid Purchase Days Count:</b> ${validDays.size}<br>
+    <b>Counted Days:</b> ${countedDaysArray.join(', ')}<br><br>
+    <b>Counted Purchases:</b> <span class="counted">${countedPurchases.join('<br>')}</span><br><br>
+    <b>Ignored Purchases:</b> <span class="ignored">${ignoredPurchases.join('<br>')}</span>
   `;
 }
 </script>
