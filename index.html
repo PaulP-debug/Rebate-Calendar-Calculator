@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sequential Rebate Range with 08:00 Rule</title>
+<title>Sequential Rebate Range Summary</title>
 <style>
 body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; color: #333; }
 h2 { color: #2b4c7e; }
@@ -21,7 +21,7 @@ th { background-color: #2b4c7e; color: white; }
 </style>
 </head>
 <body>
-<h2>📊 Continuous Sequential Rebate Ranges with 08:00 Rule</h2>
+<h2>📊 Continuous Sequential Rebate Ranges Summary</h2>
 
 <label>1️⃣ Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
 <input type="text" id="rebateDate" placeholder="2025-10-02 01:39:29">
@@ -57,7 +57,6 @@ function calculate() {
 
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  // Sort purchases
   purchaseDates.sort((a,b) => a - b);
   const maxPurchaseDate = purchaseDates[purchaseDates.length - 1];
 
@@ -65,16 +64,14 @@ function calculate() {
   const results = [];
 
   function getDayKey(date) {
-    // Apply 08:00 cutoff rule
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const seconds = date.getSeconds();
     const totalSeconds = hours*3600 + minutes*60 + seconds;
 
-    const cutoffSeconds = 8*3600; // 08:00:00 in seconds
+    const cutoffSeconds = 8*3600; // 08:00:00
     let adjustedDate = new Date(date);
     if (totalSeconds < cutoffSeconds) {
-      // Count for previous day
       adjustedDate.setDate(adjustedDate.getDate() - 1);
     }
     return adjustedDate.getFullYear() + '-' + (adjustedDate.getMonth() + 1).toString().padStart(2,'0') + '-' + adjustedDate.getDate().toString().padStart(2,'0');
@@ -90,41 +87,3 @@ function calculate() {
       if (dt >= rangeStart && dt < rangeEnd) {
         const dayStr = getDayKey(dt);
         dayCounts[dayStr] = (dayCounts[dayStr] || 0) + 1;
-      }
-    }
-
-    results.push({
-      start: new Date(rangeStart),
-      end: new Date(rangeEnd),
-      dayCounts
-    });
-
-    // Next range starts immediately after this one
-    rangeStart = new Date(rangeEnd);
-  }
-
-  // Build table
-  let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Day</th><th>Purchase Count</th></tr>';
-
-  results.forEach(r => {
-    const days = Object.keys(r.dayCounts);
-    if (days.length === 0) {
-      tableHTML += `<tr><td>${r.start.toLocaleString()}</td><td>${r.end.toLocaleString()}</td><td>-</td><td>0</td></tr>`;
-    } else {
-      days.forEach(day => {
-        tableHTML += `<tr>
-          <td>${r.start.toLocaleString()}</td>
-          <td>${r.end.toLocaleString()}</td>
-          <td>${day}</td>
-          <td>${r.dayCounts[day]}</td>
-        </tr>`;
-      });
-    }
-  });
-
-  tableHTML += '</table>';
-  document.getElementById("result").innerHTML = tableHTML;
-}
-</script>
-</body>
-</html>
