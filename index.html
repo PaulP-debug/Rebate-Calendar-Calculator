@@ -1,45 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sequential Rebate Range Summary</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; color: #333; }
-h2 { color: #2b4c7e; }
-input, select, textarea, button {
-  display: block; width: 100%; margin: 10px 0; padding: 10px;
-  font-size: 16px; border: 1px solid #ccc; border-radius: 5px;
-}
-textarea { height: 150px; resize: vertical; }
-button { background: #2b4c7e; color: white; cursor: pointer; }
-button:hover { background: #1e355c; }
-.result-box { background: #fff; border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 5px; }
-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-th { background-color: #2b4c7e; color: white; }
-.valid-range { background-color: #c6f6c6; } /* light green for valid ranges */
-</style>
-</head>
-<body>
-<h2>📊 Continuous Sequential Rebate Ranges Summary</h2>
-
-<label>1️⃣ Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-<input type="text" id="rebateDate" placeholder="2025-10-02 01:39:29">
-
-<label>2️⃣ Tier</label>
-<select id="tier">
-  <option value="2">Tier 2 (7 days)</option>
-  <option value="3">Tier 3 (9 days)</option>
-</select>
-
-<label>3️⃣ Purchase Dates (one per line, format: YYYY-MM-DD HH:MM:SS)</label>
-<textarea id="purchaseDates" placeholder="2025-10-02 07:59:59&#10;2025-10-05 09:00:00"></textarea>
-
-<button onclick="calculate()">Calculate</button>
-
-<div class="result-box" id="result"></div>
-
 <script>
 function calculate() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
@@ -79,7 +37,7 @@ function calculate() {
   }
 
   while (rangeStart <= maxPurchaseDate) {
-    // Range end is always at 08:00:00 of the Nth day after start
+    // Range end is N days later at 08:00:00
     let rangeEnd = new Date(rangeStart);
     rangeEnd.setDate(rangeEnd.getDate() + periodDays);
     rangeEnd.setHours(8,0,0,0);
@@ -99,7 +57,7 @@ function calculate() {
       dayCounts
     });
 
-    // Next range starts exactly at previous range end (08:00:00)
+    // Next range starts exactly at previous range end
     rangeStart = new Date(rangeEnd);
   }
 
@@ -107,7 +65,7 @@ function calculate() {
   let tableHTML = '<table><tr><th>Range Start</th><th>Range End (08:00:00)</th><th>Unique Days</th><th>Total Purchases</th></tr>';
 
   results.forEach(r => {
-    const uniqueDays = Object.keys(r.dayCounts).join('<br>'); // show actual dates
+    const uniqueDays = Object.keys(r.dayCounts).sort().join('<br>'); // ascending order
     const totalPurchases = Object.values(r.dayCounts).reduce((a,b) => a+b, 0);
     const highlightClass = totalPurchases > 0 ? 'valid-range' : '';
     tableHTML += `<tr class="${highlightClass}">
@@ -122,5 +80,3 @@ function calculate() {
   document.getElementById("result").innerHTML = tableHTML;
 }
 </script>
-</body>
-</html>
