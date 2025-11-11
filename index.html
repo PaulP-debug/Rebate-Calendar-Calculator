@@ -79,9 +79,10 @@ function calculate() {
   }
 
   while (rangeStart <= maxPurchaseDate) {
+    // Range end is always at 08:00:00 of the Nth day after start
     let rangeEnd = new Date(rangeStart);
     rangeEnd.setDate(rangeEnd.getDate() + periodDays);
-    rangeEnd.setHours(8,0,0,0); // Always end at 08:00:00
+    rangeEnd.setHours(8,0,0,0);
 
     const dayCounts = {};
 
@@ -98,6 +99,7 @@ function calculate() {
       dayCounts
     });
 
+    // Next range starts exactly at previous range end (08:00:00)
     rangeStart = new Date(rangeEnd);
   }
 
@@ -105,13 +107,13 @@ function calculate() {
   let tableHTML = '<table><tr><th>Range Start</th><th>Range End (08:00:00)</th><th>Unique Days</th><th>Total Purchases</th></tr>';
 
   results.forEach(r => {
-    const uniqueDays = Object.keys(r.dayCounts).length;
+    const uniqueDays = Object.keys(r.dayCounts).join('<br>'); // show actual dates
     const totalPurchases = Object.values(r.dayCounts).reduce((a,b) => a+b, 0);
     const highlightClass = totalPurchases > 0 ? 'valid-range' : '';
     tableHTML += `<tr class="${highlightClass}">
       <td>${r.start.toLocaleString()}</td>
       <td>${r.end.toLocaleString()}</td>
-      <td>${uniqueDays}</td>
+      <td>${uniqueDays || '-'}</td>
       <td>${totalPurchases}</td>
     </tr>`;
   });
