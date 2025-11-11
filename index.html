@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebate Purchase Counter</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; color: #333; }
+  h2 { color: #2b4c7e; }
+  input, select, textarea, button {
+    display: block; width: 100%; margin: 10px 0; padding: 10px;
+    font-size: 16px; border: 1px solid #ccc; border-radius: 5px;
+  }
+  textarea { height: 150px; resize: vertical; }
+  button { background: #2b4c7e; color: white; cursor: pointer; }
+  button:hover { background: #1e355c; }
+  .result-box { background: #fff; border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 5px; }
+</style>
+</head>
+<body>
+  <h2>🗓️ Rebate Purchase Counter</h2>
+
+  <label>1️⃣ Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
+  <input type="text" id="rebateDate" placeholder="2025-11-01 12:00:00">
+
+  <label>2️⃣ Tier</label>
+  <select id="tier">
+    <option value="2">Tier 2 (7 days)</option>
+    <option value="3">Tier 3 (9 days)</option>
+  </select>
+
+  <label>3️⃣ Purchase Dates (one per line, format: YYYY-MM-DD HH:MM:SS)</label>
+  <textarea id="purchaseDates" placeholder="2025-11-01 07:59:59&#10;2025-11-03 09:00:00"></textarea>
+
+  <button onclick="calculate()">Calculate Purchases</button>
+
+  <div class="result-box" id="result"></div>
+
+<script>
+function calculate() {
+  const rebateInput = document.getElementById("rebateDate").value.trim();
+  const tier = document.getElementById("tier").value;
+  const purchasesRaw = document.getElementById("purchaseDates").value.trim();
+
+  if (!rebateInput) return alert("Please enter a rebate date.");
+  if (!purchasesRaw) return alert("Please enter at least one purchase date.");
+
+  const rebateDate = new Date(rebateInput.replace(" ", "T"));
+  if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
+
+  // Calculate end date based on tier
+  const endDate = new Date(rebateDate);
+  endDate.setDate(rebateDate.getDate() + (tier === "2" ? 7 : 9));
+
+  // Split purchases
+  const purchaseLines = purchasesRaw.split(/\n+/);
+  let count = 0;
+
+  for (let line of purchaseLines) {
+    line = line.trim();
+    if (!line) continue;
+    let dt = new Date(line.replace(" ", "T"));
+    if (isNaN(dt)) continue;
+
+    // Adjust time: <= 08:00:00 → previous day
+    const hours = dt.getHours(), mins = dt.getMinutes(), secs = dt.getSeconds();
+    if (hours < 8 || (hours === 8 && mins === 0 && secs === 0)) {
+      dt.setDate(dt.getDate() - 1);
+    }
+
+    // Check if within rebate range
+    if (dt >= rebateDate && dt <= endDate) {
+      count++;
+    }
+  }
+
+  document.getElementById("result").innerHTML = `
+    <b>Rebate Range:</b> ${rebateDate.toLocaleString()} → ${endDate.toLocaleString()}<br>
+    <b>Valid Purchases:</b> ${count}
+  `;
+}
+</script>
+</body>
+</html>
