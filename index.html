@@ -1,3 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebate Calendar Calculator</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
+  textarea { height: 150px; }
+  button { padding: 10px 20px; font-size: 16px; }
+  table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  .valid-range { background-color: #c6efce; } /* green highlight */
+</style>
+</head>
+<body>
+
+<h2>Rebate Calendar Calculator</h2>
+
+<label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
+<input type="text" id="rebateDate" placeholder="2025-04-11 01:12:41">
+
+<label for="tier">2. Tier</label>
+<select id="tier">
+  <option value="2">Tier 2 (7 days)</option>
+  <option value="3">Tier 3 (9 days)</option>
+</select>
+
+<label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
+<textarea id="purchaseDates" placeholder="2025-04-11 07:30:00&#10;2025-04-11 09:00:00"></textarea>
+
+<button onclick="calculate()">Calculate</button>
+
+<h3>4. Result</h3>
+<div id="result"></div>
+
+<script>
 function calculate() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -40,7 +78,7 @@ function calculate() {
     for (let dt of purchaseDates) {
       if (dt >= rangeStart && dt < rangeEnd) {
         const dayStr = getDayKey(dt);
-        dayCounts[dayStr] = 1; // count **unique day** only
+        dayCounts[dayStr] = 1; // unique days only
       }
     }
 
@@ -73,3 +111,7 @@ function calculate() {
   tableHTML += '</table>';
   document.getElementById("result").innerHTML = tableHTML;
 }
+</script>
+
+</body>
+</html>
