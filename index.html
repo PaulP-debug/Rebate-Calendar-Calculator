@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rebate Purchase Counter</title>
+<title>Continuous Rebate Purchase Counter</title>
 <style>
   body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; color: #333; }
   h2 { color: #2b4c7e; }
@@ -17,13 +17,16 @@
   .result-box { background: #fff; border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 5px; }
   .ignored { color: #b22222; }
   .counted { color: #228B22; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #2b4c7e; color: white; }
 </style>
 </head>
 <body>
-  <h2>🗓️ Rebate Purchase Counter</h2>
+  <h2>🔄 Continuous Rebate Purchase Counter</h2>
 
   <label>1️⃣ Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-  <input type="text" id="rebateDate" placeholder="2025-11-01 12:00:00">
+  <input type="text" id="rebateDate" placeholder="2025-10-02 00:24:08">
 
   <label>2️⃣ Tier</label>
   <select id="tier">
@@ -32,73 +35,96 @@
   </select>
 
   <label>3️⃣ Purchase Dates (one per line, format: YYYY-MM-DD HH:MM:SS)</label>
-  <textarea id="purchaseDates" placeholder="2025-11-01 07:59:59&#10;2025-11-03 09:00:00"></textarea>
+  <textarea id="purchaseDates" placeholder="2025-10-02 07:59:59&#10;2025-10-05 09:00:00"></textarea>
 
-  <button onclick="calculate()">Calculate Purchases</button>
+  <button onclick="calculate()">Calculate Continuous Ranges</button>
 
   <div class="result-box" id="result"></div>
 
 <script>
 function calculate() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = document.getElementById("tier").value;
+  const tier = parseInt(document.getElementById("tier").value);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
 
   if (!rebateInput) return alert("Please enter a rebate date.");
   if (!purchasesRaw) return alert("Please enter at least one purchase date.");
 
-  const rebateDate = new Date(rebateInput.replace(" ", "T"));
+  let rebateDate = new Date(rebateInput.replace(" ", "T"));
   if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
 
-  // Determine end date based on tier
-  const endDate = new Date(rebateDate);
-  endDate.setDate(rebateDate.getDate() + (tier === "2" ? 7 : 9));
+  const periodDays = tier === 2 ? 7 : 9;
 
-  const purchaseLines = purchasesRaw.split(/\n+/);
-  const validDays = new Set();
-  const countedPurchases = [];
-  const ignoredPurchases = [];
+  const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
+  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T")))
+                                      .filter(dt => !isNaN(dt));
 
-  for (let line of purchaseLines) {
-    line = line.trim();
-    if (!line) continue;
-    let dt = new Date(line.replace(" ", "T"));
-    if (isNaN(dt)) {
-      ignoredPurchases.push(line + " (invalid format)");
-      continue;
+  if (purchaseDates.length === 0) return alert("No valid purchase dates.");
+
+  // Determine the max date in the purchases to know how far to generate ranges
+  const maxPurchaseDate = new Date(Math.max(...purchaseDates.map(d => d.getTime())));
+
+  const resultArray = [];
+  let rangeStart = new Date(rebateDate);
+
+  while (rangeStart <= maxPurchaseDate) {
+    let rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + periodDays);
+
+    const countedDays = new Set();
+    const countedPurchases = [];
+    const ignoredPurchases = [];
+
+    for (let dt of purchaseDates) {
+      let adjustedDate = new Date(dt);
+
+      const secondsSinceMidnight = adjustedDate.getHours() * 3600 + adjustedDate.getMinutes() * 60 + adjustedDate.getSeconds();
+
+      // Early morning counts for previous day
+      if (secondsSinceMidnight >= 1 && secondsSinceMidnight <= 8 * 3600) {
+        adjustedDate.setDate(adjustedDate.getDate() - 1);
+      }
+
+      const dateOnly = new Date(adjustedDate.getFullYear(), adjustedDate.getMonth(), adjustedDate.getDate());
+
+      // Special rule: last day of the range only counts purchases <= 08:00:00
+      const isLastDay = dateOnly.getTime() === new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate()).getTime();
+      if (dateOnly >= rangeStart && dateOnly <= rangeEnd) {
+        if (isLastDay && secondsSinceMidnight > 8 * 3600) {
+          ignoredPurchases.push(dt.toISOString().replace("T"," ").slice(0,19));
+          continue;
+        }
+        countedDays.add(dateOnly.toDateString());
+        countedPurchases.push(dt.toISOString().replace("T"," ").slice(0,19));
+      } else {
+        ignoredPurchases.push(dt.toISOString().replace("T"," ").slice(0,19));
+      }
     }
 
-    const hours = dt.getHours(), mins = dt.getMinutes(), secs = dt.getSeconds();
-    const secondsSinceMidnight = hours * 3600 + mins * 60 + secs;
+    resultArray.push({
+      start: new Date(rangeStart),
+      end: new Date(rangeEnd),
+      uniqueDays: countedDays.size,
+      countedPurchases,
+      ignoredPurchases
+    });
 
-    // 00:00:01–08:00:00 → previous day
-    if (secondsSinceMidnight >= 1 && secondsSinceMidnight <= 8 * 3600) {
-      dt.setDate(dt.getDate() - 1);
-    }
-
-    // Convert to just date (YYYY-MM-DD)
-    const dateOnly = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-
-    const rebateDayStart = new Date(rebateDate.getFullYear(), rebateDate.getMonth(), rebateDate.getDate());
-    const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-
-    if (dateOnly >= rebateDayStart && dateOnly <= endDay) {
-      validDays.add(dateOnly.toDateString());
-      countedPurchases.push(line);
-    } else {
-      ignoredPurchases.push(line);
-    }
+    // Move to next range
+    rangeStart.setDate(rangeStart.getDate() + periodDays);
   }
 
-  const countedDaysArray = Array.from(validDays).sort((a,b) => new Date(a) - new Date(b));
+  // Build table output
+  let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days Count</th></tr>';
+  resultArray.forEach(r => {
+    tableHTML += `<tr>
+      <td>${r.start.toLocaleString()}</td>
+      <td>${r.end.toLocaleString()}</td>
+      <td>${r.uniqueDays}</td>
+    </tr>`;
+  });
+  tableHTML += '</table>';
 
-  document.getElementById("result").innerHTML = `
-    <b>Rebate Range:</b> ${rebateDate.toLocaleString()} → ${endDate.toLocaleString()}<br>
-    <b>Valid Purchase Days Count:</b> ${validDays.size}<br>
-    <b>Counted Days:</b> ${countedDaysArray.join(', ')}<br><br>
-    <b>Counted Purchases:</b> <span class="counted">${countedPurchases.join('<br>')}</span><br><br>
-    <b>Ignored Purchases:</b> <span class="ignored">${ignoredPurchases.join('<br>')}</span>
-  `;
+  document.getElementById("result").innerHTML = tableHTML;
 }
 </script>
 </body>
