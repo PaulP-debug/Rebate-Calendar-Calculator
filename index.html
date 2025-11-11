@@ -18,6 +18,7 @@ button:hover { background: #1e355c; }
 table { width: 100%; border-collapse: collapse; margin-top: 15px; }
 th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
 th { background-color: #2b4c7e; color: white; }
+.valid-range { background-color: #c6f6c6; } /* light green for valid ranges */
 </style>
 </head>
 <body>
@@ -80,6 +81,7 @@ function calculate() {
   while (rangeStart <= maxPurchaseDate) {
     let rangeEnd = new Date(rangeStart);
     rangeEnd.setDate(rangeEnd.getDate() + periodDays);
+    rangeEnd.setHours(8,0,0,0); // Always end at 08:00:00
 
     const dayCounts = {};
 
@@ -87,3 +89,36 @@ function calculate() {
       if (dt >= rangeStart && dt < rangeEnd) {
         const dayStr = getDayKey(dt);
         dayCounts[dayStr] = (dayCounts[dayStr] || 0) + 1;
+      }
+    }
+
+    results.push({
+      start: new Date(rangeStart),
+      end: new Date(rangeEnd),
+      dayCounts
+    });
+
+    rangeStart = new Date(rangeEnd);
+  }
+
+  // Build summary table
+  let tableHTML = '<table><tr><th>Range Start</th><th>Range End (08:00:00)</th><th>Unique Days</th><th>Total Purchases</th></tr>';
+
+  results.forEach(r => {
+    const uniqueDays = Object.keys(r.dayCounts).length;
+    const totalPurchases = Object.values(r.dayCounts).reduce((a,b) => a+b, 0);
+    const highlightClass = totalPurchases > 0 ? 'valid-range' : '';
+    tableHTML += `<tr class="${highlightClass}">
+      <td>${r.start.toLocaleString()}</td>
+      <td>${r.end.toLocaleString()}</td>
+      <td>${uniqueDays}</td>
+      <td>${totalPurchases}</td>
+    </tr>`;
+  });
+
+  tableHTML += '</table>';
+  document.getElementById("result").innerHTML = tableHTML;
+}
+</script>
+</body>
+</html>
