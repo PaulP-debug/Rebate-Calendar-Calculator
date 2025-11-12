@@ -89,6 +89,7 @@ function calculateLegends() {
       if (dt >= rangeStart && dt < rangeEnd) {
         let adjustedDate = new Date(dt);
         const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
+        // Apply BEFORE 08:00 logic only for LEGENDS mode
         if (totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
         const dayStr = adjustedDate.getFullYear()+'-'+(adjustedDate.getMonth()+1).toString().padStart(2,'0')+'-'+adjustedDate.getDate().toString().padStart(2,'0');
         dayCounts[dayStr] = 1;
@@ -136,6 +137,7 @@ function calculateAcorn() {
     const dayCounts = {};
     for(let dt of purchaseDates){
       if(dt >= rangeStart && dt < rangeEnd){
+        // ACORN mode counts as is, no adjustment
         const dayStr = dt.toISOString().split("T")[0];
         dayCounts[dayStr] = 1;
       }
