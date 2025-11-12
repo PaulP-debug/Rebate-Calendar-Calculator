@@ -65,38 +65,39 @@ function calculateLegends() {
 
   let results = [];
   let rangeStart = new Date(rebateDate);
-  let isFirstEvent = true;
+  let firstEvent = true;
 
   while(rangeStart <= lastPurchaseDate) {
     let rangeEnd = new Date(rangeStart);
 
-    if(isFirstEvent) {
-      // First day logic
+    if(firstEvent) {
+      // First day logic for rebate date
       if(rangeStart.getHours() < 8) {
-        // Day 1: rebate time → 08:00 same day
+        // Day 1: rebate time -> 08:00 same day
         let firstDayEnd = new Date(rangeStart);
         firstDayEnd.setHours(8,0,0,0);
+
+        // Full range end: 08:00 after periodDays-1 more days
         rangeEnd = new Date(firstDayEnd);
-        // Full event end: 08:00 after (periodDays -1)
-        rangeEnd.setDate(rangeEnd.getDate() + (periodDays -1));
+        rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
+        rangeEnd.setHours(8,0,0,0);
       } else {
-        // rebate time >= 08:00 → Day1 = full 08:00 → 08:00 period
+        // Day 1: rebate time -> 08:00 next day
         rangeEnd.setDate(rangeEnd.getDate() + periodDays);
         rangeEnd.setHours(8,0,0,0);
       }
-      isFirstEvent = false;
+      firstEvent = false;
     } else {
-      // Subsequent events: full 08:00 → 08:00 ranges
+      // Subsequent events: simple 24h 08:00->08:00
       rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
     }
 
-    // Count purchases within range
+    // Count unique purchase days for Legends
     const dayCounts = {};
-    const cutoffSeconds = 8*3600;
+    const cutoffSeconds = 8*3600; // 08:00
     for (let dt of purchaseDates) {
       if(dt >= rangeStart && dt < rangeEnd) {
-        // Apply Legends "before 08:00 → previous day" rule
         let dayStr;
         const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
         if(totalSeconds < cutoffSeconds) {
@@ -146,12 +147,14 @@ function calculateAcorn() {
   let rangeStart = new Date(rebateDate);
 
   while(rangeStart <= lastPurchaseDate) {
-    let rangeEnd = new Date(rangeStart.getTime() + periodDays*24*60*60*1000);
+    let rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + periodDays);
+    rangeEnd.setHours(8,0,0,0);
 
+    // Count unique purchases exactly as-is (no 08:00 adjustment)
     const dayCounts = {};
-    for(let dt of purchaseDates) {
-      if(dt >= rangeStart && dt < rangeEnd) {
-        // ACORN counts purchase as-is, no 08:00 adjustment
+    for(let dt of purchaseDates){
+      if(dt >= rangeStart && dt < rangeEnd){
         const dayStr = dt.toISOString().split("T")[0];
         dayCounts[dayStr] = 1;
       }
@@ -170,7 +173,7 @@ function calculateAcorn() {
   renderTable(results, "#FFD700", "ACORN");
 }
 
-/* ---------- SHARED TABLE RENDER ---------- */
+/* ---------- Shared render function ---------- */
 function renderTable(results, headerColor, modeLabel) {
   document.getElementById("modeLabel").innerHTML = `<span style="color:${headerColor}">Results — ${modeLabel} Mode</span>`;
   let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
