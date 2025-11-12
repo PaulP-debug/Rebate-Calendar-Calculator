@@ -11,6 +11,7 @@
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  .valid-range { background-color: #c6efce; } /* green highlight */
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
 </style>
 </head>
@@ -43,7 +44,7 @@
 <div id="result"></div>
 
 <script>
-/* ---------- LEGENDS MODE (full events with 08:00 first day logic) ---------- */
+/* ---------- LEGENDS MODE ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -58,48 +59,38 @@ function calculateLegends() {
   const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  purchaseDates.sort((a,b) => a - b);
+  purchaseDates.sort((a,b)=>a-b);
   const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
 
   let results = [];
   let rangeStart = new Date(rebateDate);
-  let isFirstEvent = true;
 
   while(rangeStart <= lastPurchaseDate) {
-    let rangeEnd = new Date(rangeStart);
+    let firstDayEnd = new Date(rangeStart);
 
-    if(isFirstEvent){
-      // First day logic
-      if(rangeStart.getHours() < 8) {
-        // Day 1 = rebate time to 08:00 same day
-        let firstDayEnd = new Date(rangeStart);
-        firstDayEnd.setHours(8,0,0,0);
-        rangeEnd = new Date(firstDayEnd);
-        rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
-        rangeEnd.setHours(8,0,0,0);
-      } else {
-        // Rebate time >= 08:00, full first day until 08:00 next day
-        rangeEnd.setDate(rangeEnd.getDate() + periodDays);
-        rangeEnd.setHours(8,0,0,0);
-      }
-      isFirstEvent = false;
+    // Determine first day end based on rebate time
+    if (rangeStart.getHours() < 8) {
+      firstDayEnd.setHours(8,0,0,0);
     } else {
-      // Subsequent events: always 08:00 to 08:00
-      rangeEnd.setDate(rangeEnd.getDate() + periodDays);
-      rangeEnd.setHours(8,0,0,0);
+      firstDayEnd = new Date(rangeStart);
+      firstDayEnd.setDate(firstDayEnd.getDate() + 1);
+      firstDayEnd.setHours(8,0,0,0);
     }
+
+    // Full event range
+    let rangeEnd = new Date(firstDayEnd);
+    rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
+    rangeEnd.setHours(8,0,0,0);
 
     // Count purchase dates
     const dayCounts = {};
-    for(let dt of purchaseDates){
-      if(dt >= rangeStart && dt < rangeEnd){
-        const adjusted = new Date(dt);
-        if(adjusted.getHours() < 8){
-          adjusted.setDate(adjusted.getDate()-1);
-        }
-        const dayStr = adjusted.getFullYear() + '-' + 
-                       (adjusted.getMonth()+1).toString().padStart(2,'0') + '-' + 
-                       adjusted.getDate().toString().padStart(2,'0');
+    const cutoffSeconds = 8*3600; // 08:00
+    for (let dt of purchaseDates) {
+      if (dt >= rangeStart && dt < rangeEnd) {
+        let adjustedDate = new Date(dt);
+        const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
+        if (totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
+        const dayStr = adjustedDate.getFullYear()+'-'+(adjustedDate.getMonth()+1).toString().padStart(2,'0')+'-'+adjustedDate.getDate().toString().padStart(2,'0');
         dayCounts[dayStr] = 1;
       }
     }
@@ -111,13 +102,14 @@ function calculateLegends() {
       totalPurchases: Object.keys(dayCounts).length
     });
 
+    // Next event starts at 08:00 of the previous range end
     rangeStart = new Date(rangeEnd);
   }
 
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE (full 24h events) ---------- */
+/* ---------- ACORN MODE ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -132,7 +124,7 @@ function calculateAcorn() {
   const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  purchaseDates.sort((a,b) => a - b);
+  purchaseDates.sort((a,b)=>a-b);
   const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
 
   let results = [];
@@ -163,12 +155,12 @@ function calculateAcorn() {
 }
 
 /* ---------- Shared render function ---------- */
-function renderTable(results, headerColor, modeLabel){
+function renderTable(results, headerColor, modeLabel) {
   document.getElementById("modeLabel").innerHTML = `<span style="color:${headerColor}">Results — ${modeLabel} Mode</span>`;
   let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
 
-  results.forEach(r=>{
-    tableHTML += `<tr>
+  results.forEach(r => {
+    tableHTML += `<tr class="${r.totalPurchases > 0 ? 'valid-range' : ''}">
       <td>${r.start.toLocaleString()}</td>
       <td>${r.end.toLocaleString()}</td>
       <td>${r.uniqueDays.join('<br>') || '-'}</td>
@@ -182,7 +174,7 @@ function renderTable(results, headerColor, modeLabel){
   const table = document.querySelector("#result table");
   if(table){
     const headers = table.querySelectorAll("th");
-    headers.forEach(th=>{
+    headers.forEach(th => {
       th.style.backgroundColor = headerColor;
       th.style.color = "white";
     });
