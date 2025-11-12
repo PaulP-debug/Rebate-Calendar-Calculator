@@ -44,85 +44,93 @@
 <div id="result"></div>
 
 <script>
-/* ---------- LEGENDS MODE (improved first day cutoff handling) ---------- */
+/* ---------- LEGENDS MODE (first event respects 08:00, subsequent full-day events) ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  let rebateDate = new Date(rebateInput.replace(" ", "T"));
+  let rebateDate = new Date(rebateInput.replace(" ", "T").replace(/-/g,'/'));
   if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
 
   const periodDays = tier === 2 ? 7 : 9;
-
   const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
-  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
+  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T").replace(/-/g,'/'))).filter(dt => !isNaN(dt));
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  purchaseDates.sort((a,b)=>a-b);
-  const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
+  purchaseDates.sort((a,b) => a - b);
+  const lastPurchaseDate = purchaseDates[purchaseDates.length - 1];
 
   let results = [];
   let rangeStart = new Date(rebateDate);
+  let isFirstEvent = true;
 
   while(rangeStart <= lastPurchaseDate) {
-    // Determine first day end based on rebate time
-    let firstDayEnd = new Date(rangeStart);
-    if (rangeStart.getHours() < 8 || (rangeStart.getHours() === 8 && rangeStart.getMinutes() === 0 && rangeStart.getSeconds() === 0)) {
-      firstDayEnd.setHours(8,0,0,0);
+    let rangeEnd;
+
+    if (isFirstEvent) {
+      // First event cutoff logic
+      let firstDayEnd = new Date(rangeStart);
+      if (rangeStart.getHours() < 8 || (rangeStart.getHours() === 8 && rangeStart.getMinutes() === 0 && rangeStart.getSeconds() === 0)) {
+        firstDayEnd.setHours(8,0,0,0);
+      } else {
+        firstDayEnd.setDate(firstDayEnd.getDate() + 1);
+        firstDayEnd.setHours(8,0,0,0);
+      }
+
+      rangeEnd = new Date(firstDayEnd);
+      rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
+      rangeEnd.setHours(8,0,0,0);
+
+      isFirstEvent = false; // Done with first event
     } else {
-      // If rebate is after 08:00, first day runs full 24h until next 08:00
-      firstDayEnd.setDate(firstDayEnd.getDate() + 1);
-      firstDayEnd.setHours(8,0,0,0);
+      // Subsequent events: start at 08:00, full periodDays
+      rangeStart.setHours(8,0,0,0);
+      rangeEnd = new Date(rangeStart);
+      rangeEnd.setDate(rangeEnd.getDate() + periodDays);
+      rangeEnd.setHours(8,0,0,0);
     }
 
-    // Full event end
-    let rangeEnd = new Date(firstDayEnd);
-    rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
-    rangeEnd.setHours(8,0,0,0);
-
-    // Count unique purchase days within this range using a Set
-    const daySet = new Set();
-    const cutoffSeconds = 8 * 3600; // 08:00 in seconds
-
+    // Count unique purchase days
+    const dayCounts = {};
+    const cutoffSeconds = 8*3600;
     for (let dt of purchaseDates) {
       if (dt >= rangeStart && dt < rangeEnd) {
         let adjustedDate = new Date(dt);
         const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
         if (totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
         const dayStr = adjustedDate.getFullYear()+'-'+(adjustedDate.getMonth()+1).toString().padStart(2,'0')+'-'+adjustedDate.getDate().toString().padStart(2,'0');
-        daySet.add(dayStr);
+        dayCounts[dayStr] = 1;
       }
     }
 
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
-      uniqueDays: Array.from(daySet).sort(),
-      totalPurchases: daySet.size
+      uniqueDays: Object.keys(dayCounts).sort(),
+      totalPurchases: Object.keys(dayCounts).length
     });
 
-    // Move to next event
     rangeStart = new Date(rangeEnd);
   }
 
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE (unchanged 24h events) ---------- */
+/* ---------- ACORN MODE (full 24h events) ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  let rebateDate = new Date(rebateInput.replace(" ", "T"));
+  let rebateDate = new Date(rebateInput.replace(" ", "T").replace(/-/g,'/'));
   if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
 
   const periodDays = tier === 2 ? 7 : 9;
   const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
-  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
+  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T").replace(/-/g,'/'))).filter(dt => !isNaN(dt));
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
   purchaseDates.sort((a,b)=>a-b);
@@ -134,19 +142,19 @@ function calculateAcorn() {
   while(rangeStart <= lastPurchaseDate) {
     let rangeEnd = new Date(rangeStart.getTime() + periodDays*24*60*60*1000);
 
-    const daySet = new Set();
+    const dayCounts = {};
     for(let dt of purchaseDates) {
       if(dt >= rangeStart && dt < rangeEnd){
         const dayStr = dt.toISOString().split("T")[0];
-        daySet.add(dayStr);
+        dayCounts[dayStr] = 1;
       }
     }
 
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
-      uniqueDays: Array.from(daySet).sort(),
-      totalPurchases: daySet.size
+      uniqueDays: Object.keys(dayCounts).sort(),
+      totalPurchases: Object.keys(dayCounts).length
     });
 
     rangeStart = new Date(rangeEnd);
