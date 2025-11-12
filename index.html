@@ -12,7 +12,6 @@
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
   .valid-range { background-color: #c6efce; } /* green highlight */
-  .partial-first-day { background-color: #ffecb3; } /* light yellow for first partial day */
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
 </style>
 </head>
@@ -21,7 +20,7 @@
 <h2>Rebate Calendar Calculator</h2>
 
 <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-<input type="text" id="rebateDate" placeholder="2025-04-11 07:00:00">
+<input type="text" id="rebateDate" placeholder="2025-04-11 01:12:41">
 
 <label for="tier">2. Tier</label>
 <select id="tier">
@@ -45,7 +44,7 @@
 <div id="result"></div>
 
 <script>
-/* ---------- LEGENDS MODE ---------- */
+/* ---------- LEGENDS MODE (multiple full events with 08:00 first-day logic) ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -61,7 +60,7 @@ function calculateLegends() {
   const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  purchaseDates.sort((a,b) => a-b);
+  purchaseDates.sort((a,b)=>a-b);
   const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
 
   let results = [];
@@ -71,24 +70,21 @@ function calculateLegends() {
   while(rangeStart <= lastPurchaseDate) {
     let rangeEnd;
 
-    // First event partial day logic
     if(isFirstEvent) {
-      if(rangeStart.getHours() < 8 || (rangeStart.getHours() === 8 && rangeStart.getMinutes() === 0 && rangeStart.getSeconds() === 0)) {
-        // Before 08:00 → Day 1: rebate time to 08:00 same day
+      // First event special handling
+      if(rangeStart.getHours() < 8) {
         let firstDayEnd = new Date(rangeStart);
         firstDayEnd.setHours(8,0,0,0);
-        // Full range end after Day 1 + remaining days
         rangeEnd = new Date(firstDayEnd);
         rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
         rangeEnd.setHours(8,0,0,0);
       } else {
-        // After 08:00 → Day 1: full 24h until next 08:00
         rangeEnd = new Date(rangeStart);
         rangeEnd.setDate(rangeEnd.getDate() + periodDays);
         rangeEnd.setHours(8,0,0,0);
       }
     } else {
-      // Subsequent events: full days 08:00→08:00
+      // Subsequent events: 08:00 → 08:00
       rangeEnd = new Date(rangeStart);
       rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
@@ -100,7 +96,7 @@ function calculateLegends() {
     for(let dt of purchaseDates){
       if(dt >= rangeStart && dt < rangeEnd){
         let adjustedDate = new Date(dt);
-        if(isFirstEvent && rangeStart.getHours() < 8 && (rangeStart.getHours()*3600 + rangeStart.getMinutes()*60 + rangeStart.getSeconds() < cutoffSeconds)){
+        if(isFirstEvent && rangeStart.getHours() < 8 && (dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds() < cutoffSeconds)){
           adjustedDate.setDate(adjustedDate.getDate() - 1);
         }
         const dayStr = adjustedDate.getFullYear() + '-' + (adjustedDate.getMonth()+1).toString().padStart(2,'0') + '-' + adjustedDate.getDate().toString().padStart(2,'0');
@@ -108,30 +104,21 @@ function calculateLegends() {
       }
     }
 
-    let rowClass = '';
-    if(isFirstEvent){
-      rowClass = 'partial-first-day';
-      isFirstEvent = false;
-    } else if(Object.keys(dayCounts).length > 0){
-      rowClass = 'valid-range';
-    }
-
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
       uniqueDays: Object.keys(dayCounts).sort(),
-      totalPurchases: Object.keys(dayCounts).length,
-      rowClass: rowClass
+      totalPurchases: Object.keys(dayCounts).length
     });
 
-    // Next event starts at rangeEnd
+    isFirstEvent = false;
     rangeStart = new Date(rangeEnd);
   }
 
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE ---------- */
+/* ---------- ACORN MODE (unchanged 24h logic) ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -167,8 +154,7 @@ function calculateAcorn() {
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
       uniqueDays: Object.keys(dayCounts).sort(),
-      totalPurchases: Object.keys(dayCounts).length,
-      rowClass: Object.keys(dayCounts).length > 0 ? 'valid-range' : ''
+      totalPurchases: Object.keys(dayCounts).length
     });
 
     rangeStart = new Date(rangeEnd);
@@ -183,7 +169,8 @@ function renderTable(results, headerColor, modeLabel) {
   let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
 
   results.forEach(r => {
-    tableHTML += `<tr class="${r.rowClass}">
+    const highlightClass = r.totalPurchases > 0 ? 'valid-range' : '';
+    tableHTML += `<tr class="${highlightClass}">
       <td>${r.start.toLocaleString()}</td>
       <td>${r.end.toLocaleString()}</td>
       <td>${r.uniqueDays.join('<br>') || '-'}</td>
