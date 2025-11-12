@@ -44,7 +44,7 @@
 <div id="result"></div>
 
 <script>
-/* ---------- LEGENDS MODE (first event respects 08:00, subsequent full-day events) ---------- */
+/* ---------- LEGENDS MODE ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -64,43 +64,15 @@ function calculateLegends() {
 
   let results = [];
   let rangeStart = new Date(rebateDate);
-  let isFirstEvent = true;
 
   while(rangeStart <= lastPurchaseDate) {
-    let rangeEnd;
+    let rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + periodDays);
 
-    if (isFirstEvent) {
-      // First event cutoff logic
-      let firstDayEnd = new Date(rangeStart);
-      if (rangeStart.getHours() < 8 || (rangeStart.getHours() === 8 && rangeStart.getMinutes() === 0 && rangeStart.getSeconds() === 0)) {
-        firstDayEnd.setHours(8,0,0,0);
-      } else {
-        firstDayEnd.setDate(firstDayEnd.getDate() + 1);
-        firstDayEnd.setHours(8,0,0,0);
-      }
-
-      rangeEnd = new Date(firstDayEnd);
-      rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
-      rangeEnd.setHours(8,0,0,0);
-
-      isFirstEvent = false; // Done with first event
-    } else {
-      // Subsequent events: start at 08:00, full periodDays
-      rangeStart.setHours(8,0,0,0);
-      rangeEnd = new Date(rangeStart);
-      rangeEnd.setDate(rangeEnd.getDate() + periodDays);
-      rangeEnd.setHours(8,0,0,0);
-    }
-
-    // Count unique purchase days
     const dayCounts = {};
-    const cutoffSeconds = 8*3600;
-    for (let dt of purchaseDates) {
-      if (dt >= rangeStart && dt < rangeEnd) {
-        let adjustedDate = new Date(dt);
-        const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
-        if (totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
-        const dayStr = adjustedDate.getFullYear()+'-'+(adjustedDate.getMonth()+1).toString().padStart(2,'0')+'-'+adjustedDate.getDate().toString().padStart(2,'0');
+    for(let dt of purchaseDates){
+      if(dt >= rangeStart && dt < rangeEnd){
+        const dayStr = dt.toISOString().split("T")[0];
         dayCounts[dayStr] = 1;
       }
     }
@@ -118,7 +90,7 @@ function calculateLegends() {
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE (full 24h events) ---------- */
+/* ---------- ACORN MODE ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
