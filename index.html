@@ -44,6 +44,20 @@
 <div id="result"></div>
 
 <script>
+/* Helper: parse input as literal local datetime */
+function parseLocalDate(input) {
+  const parts = input.trim().split(/[- :]/);
+  if(parts.length < 6) return null;
+  return new Date(
+    parseInt(parts[0],10),
+    parseInt(parts[1],10)-1,
+    parseInt(parts[2],10),
+    parseInt(parts[3],10),
+    parseInt(parts[4],10),
+    parseInt(parts[5],10)
+  );
+}
+
 /* ---------- LEGENDS MODE ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
@@ -51,13 +65,13 @@ function calculateLegends() {
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  let rebateDate = new Date(rebateInput.replace(" ", "T"));
-  if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
+  let rebateDate = parseLocalDate(rebateInput);
+  if (!rebateDate) return alert("Invalid rebate date format.");
 
   const periodDays = tier === 2 ? 7 : 9;
 
   const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
-  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
+  const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
   purchaseDates.sort((a,b)=>a-b);
@@ -68,34 +82,34 @@ function calculateLegends() {
   let firstEvent = true;
 
   while(rangeStart <= lastPurchaseDate) {
-    let rangeEnd = new Date(rangeStart);
+    let rangeEnd;
+    if(firstEvent){
+      // First event day logic
+      let firstDayEnd = new Date(rangeStart);
+      if(rangeStart.getHours() < 8) firstDayEnd.setHours(8,0,0,0);
+      else firstDayEnd.setDate(firstDayEnd.getDate()+1); firstDayEnd.setHours(8,0,0,0);
 
-    // First event logic
-    if (firstEvent) {
-      if (rangeStart.getHours() < 8) {
-        // Before 08:00 → Day 1 = rebate time → 08:00 same day
-        rangeEnd.setHours(8,0,0,0);
-      } else {
-        // 08:00 or later → Day 1 = rebate time → 08:00 next day
-        rangeEnd.setDate(rangeEnd.getDate()+1);
-        rangeEnd.setHours(8,0,0,0);
-      }
+      rangeEnd = new Date(firstDayEnd);
+      rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
+      rangeEnd.setHours(8,0,0,0);
+
       firstEvent = false;
     } else {
-      // Subsequent events: 08:00 → 08:00 next day
+      // Subsequent events 24h from 08:00
+      rangeEnd = new Date(rangeStart);
       rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
     }
 
+    // Count unique purchase days
     const dayCounts = {};
-    for (let dt of purchaseDates) {
-      if (dt >= rangeStart && dt < rangeEnd) {
-        let countedDate = new Date(dt); // clone
-        // Only Legends applies the before-08:00 adjustment
-        if (dt.getHours() < 8) countedDate.setDate(countedDate.getDate() - 1);
-        const dayStr = countedDate.getFullYear() + '-' +
-                       String(countedDate.getMonth()+1).padStart(2,'0') + '-' +
-                       String(countedDate.getDate()).padStart(2,'0');
+    for(let dt of purchaseDates){
+      if(dt >= rangeStart && dt < rangeEnd){
+        let year = dt.getFullYear();
+        let month = String(dt.getMonth()+1).padStart(2,'0');
+        let date = dt.getDate();
+        if(dt.getHours() < 8) date -= 1; // only Legends mode
+        const dayStr = `${year}-${month}-${String(date).padStart(2,'0')}`;
         dayCounts[dayStr] = 1;
       }
     }
@@ -107,7 +121,7 @@ function calculateLegends() {
       totalPurchases: Object.keys(dayCounts).length
     });
 
-    rangeStart = new Date(rangeEnd); // next event
+    rangeStart = new Date(rangeEnd);
   }
 
   renderTable(results, "#8A2BE2", "LEGENDS");
@@ -120,13 +134,13 @@ function calculateAcorn() {
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  let rebateDate = new Date(rebateInput.replace(" ", "T"));
-  if (isNaN(rebateDate)) return alert("Invalid rebate date format.");
+  let rebateDate = parseLocalDate(rebateInput);
+  if (!rebateDate) return alert("Invalid rebate date format.");
 
   const periodDays = tier === 2 ? 7 : 9;
 
   const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
-  const purchaseDates = purchaseLines.map(line => new Date(line.replace(" ", "T"))).filter(dt => !isNaN(dt));
+  const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
   purchaseDates.sort((a,b)=>a-b);
@@ -135,13 +149,15 @@ function calculateAcorn() {
   let results = [];
   let rangeStart = new Date(rebateDate);
 
-  while(rangeStart <= lastPurchaseDate) {
-    let rangeEnd = new Date(rangeStart.getTime() + periodDays*24*60*60*1000);
+  while(rangeStart <= lastPurchaseDate){
+    let rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + periodDays);
+    rangeEnd.setHours(8,0,0,0);
 
     const dayCounts = {};
-    for(let dt of purchaseDates) {
+    for(let dt of purchaseDates){
       if(dt >= rangeStart && dt < rangeEnd){
-        const dayStr = dt.toISOString().split("T")[0]; // no adjustment
+        const dayStr = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
         dayCounts[dayStr] = 1;
       }
     }
