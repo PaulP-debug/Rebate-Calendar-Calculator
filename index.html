@@ -11,7 +11,7 @@
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-  .valid-range { background-color: #c6efce; } /* green highlight for rows with purchases */
+  .valid-range { background-color: #c6efce; } /* green highlight */
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
 </style>
 </head>
@@ -70,43 +70,32 @@ function calculateLegends() {
   while(rangeStart <= lastPurchaseDate) {
     let rangeEnd = new Date(rangeStart);
 
-    if(firstEvent) {
-      // First day logic for rebate date
-      if(rangeStart.getHours() < 8) {
-        // Day 1: rebate time -> 08:00 same day
-        let firstDayEnd = new Date(rangeStart);
-        firstDayEnd.setHours(8,0,0,0);
-
-        // Full range end: 08:00 after periodDays-1 more days
-        rangeEnd = new Date(firstDayEnd);
-        rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
+    // First event logic
+    if (firstEvent) {
+      if (rangeStart.getHours() < 8) {
+        // Before 08:00 → Day 1 = rebate time → 08:00 same day
         rangeEnd.setHours(8,0,0,0);
       } else {
-        // Day 1: rebate time -> 08:00 next day
-        rangeEnd.setDate(rangeEnd.getDate() + periodDays);
+        // 08:00 or later → Day 1 = rebate time → 08:00 next day
+        rangeEnd.setDate(rangeEnd.getDate()+1);
         rangeEnd.setHours(8,0,0,0);
       }
       firstEvent = false;
     } else {
-      // Subsequent events: simple 24h 08:00->08:00
+      // Subsequent events: 08:00 → 08:00 next day
       rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
     }
 
-    // Count unique purchase days for Legends
     const dayCounts = {};
-    const cutoffSeconds = 8*3600; // 08:00
     for (let dt of purchaseDates) {
-      if(dt >= rangeStart && dt < rangeEnd) {
-        let dayStr;
-        const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
-        if(totalSeconds < cutoffSeconds) {
-          let adjusted = new Date(dt);
-          adjusted.setDate(adjusted.getDate()-1);
-          dayStr = adjusted.toISOString().split("T")[0];
-        } else {
-          dayStr = dt.toISOString().split("T")[0];
-        }
+      if (dt >= rangeStart && dt < rangeEnd) {
+        let countedDate = new Date(dt); // clone
+        // Only Legends applies the before-08:00 adjustment
+        if (dt.getHours() < 8) countedDate.setDate(countedDate.getDate() - 1);
+        const dayStr = countedDate.getFullYear() + '-' +
+                       String(countedDate.getMonth()+1).padStart(2,'0') + '-' +
+                       String(countedDate.getDate()).padStart(2,'0');
         dayCounts[dayStr] = 1;
       }
     }
@@ -118,7 +107,7 @@ function calculateLegends() {
       totalPurchases: Object.keys(dayCounts).length
     });
 
-    rangeStart = new Date(rangeEnd);
+    rangeStart = new Date(rangeEnd); // next event
   }
 
   renderTable(results, "#8A2BE2", "LEGENDS");
@@ -147,15 +136,12 @@ function calculateAcorn() {
   let rangeStart = new Date(rebateDate);
 
   while(rangeStart <= lastPurchaseDate) {
-    let rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + periodDays);
-    rangeEnd.setHours(8,0,0,0);
+    let rangeEnd = new Date(rangeStart.getTime() + periodDays*24*60*60*1000);
 
-    // Count unique purchases exactly as-is (no 08:00 adjustment)
     const dayCounts = {};
-    for(let dt of purchaseDates){
+    for(let dt of purchaseDates) {
       if(dt >= rangeStart && dt < rangeEnd){
-        const dayStr = dt.toISOString().split("T")[0];
+        const dayStr = dt.toISOString().split("T")[0]; // no adjustment
         dayCounts[dayStr] = 1;
       }
     }
