@@ -99,6 +99,17 @@ function parseLocalDate(str) {
   return isNaN(d) ? null : d;
 }
 
+/* ---------- Helper: format datetime in 24-hour format ---------- */
+function format24h(dt) {
+  const yyyy = dt.getFullYear();
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  const hh = String(dt.getHours()).padStart(2,'0');
+  const mi = String(dt.getMinutes()).padStart(2,'0');
+  const ss = String(dt.getSeconds()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+}
+
 /* ---------- LEGENDS MODE ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
@@ -169,7 +180,7 @@ function calculateLegends() {
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE ---------- */
+/* ---------- ACORN MODE (fixed logic) ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -180,10 +191,9 @@ function calculateAcorn() {
   if (!rebateDate) return alert("Invalid rebate date format.");
 
   const periodDays = tier === 2 ? 7 : 9;
-
-  const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
-  const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
-  if (purchaseDates.length === 0) return alert("No valid purchase dates.");
+  const purchaseLines = purchasesRaw.split(/\n+/).map(l=>l.trim()).filter(l=>l);
+  const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt=>dt);
+  if(purchaseDates.length===0) return alert("No valid purchase dates.");
 
   purchaseDates.sort((a,b)=>a-b);
   const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
@@ -196,9 +206,14 @@ function calculateAcorn() {
     rangeEnd.setDate(rangeEnd.getDate() + periodDays);
 
     const dayCounts = {};
+    const dayLengthMs = 24*3600*1000;
     for(let dt of purchaseDates){
       if(dt >= rangeStart && dt < rangeEnd){
-        const dayStr = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+        let diffMs = dt - rangeStart;
+        let dayIndex = Math.floor(diffMs / dayLengthMs);
+        let adjustedDate = new Date(rebateDate);
+        adjustedDate.setDate(adjustedDate.getDate() + dayIndex);
+        const dayStr = adjustedDate.getFullYear()+'-'+String(adjustedDate.getMonth()+1).padStart(2,'0')+'-'+String(adjustedDate.getDate()).padStart(2,'0');
         dayCounts[dayStr] = 1;
       }
     }
@@ -224,8 +239,8 @@ function renderTable(results, headerColor, modeLabel){
   results.forEach(r=>{
     const highlightClass = r.totalPurchases > 0 ? 'valid-range' : '';
     tableHTML += `<tr class="${highlightClass}">
-      <td>${r.start.toLocaleString()}</td>
-      <td>${r.end.toLocaleString()}</td>
+      <td>${format24h(r.start)}</td>
+      <td>${format24h(r.end)}</td>
       <td>${r.uniqueDays.join('<br>') || '-'}</td>
       <td>${r.totalPurchases}</td>
     </tr>`;
