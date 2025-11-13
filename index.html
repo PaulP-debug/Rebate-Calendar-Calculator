@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Rebate Calendar Calculator</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
+  input, select, textarea { display: block; margin-bottom: 10px; width: 320px; padding: 5px; }
   textarea { height: 150px; }
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
   .valid-range { background-color: #c6efce; } /* green highlight */
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
+  .small { font-size: 0.9rem; color: #444; }
 </style>
 </head>
 <body>
@@ -41,72 +42,97 @@
 
 <h3>4. Result</h3>
 <div id="modeLabel"></div>
-<div id="result"></div>
+<div id="result" class="small"></div>
 
 <script>
-/* ---------- Utility to parse local datetime string ---------- */
+/* ---------- Utility: parse strict local datetime "YYYY-MM-DD HH:MM:SS" into local Date ---------- */
 function parseLocalDate(str) {
-  if(!str) return null;
-  const t = str.trim().replace(" ","T");
-  const d = new Date(t);
-  return isNaN(d) ? null : d;
+  if (!str) return null;
+  const s = str.trim();
+  // Accept either "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DDTHH:MM:SS"
+  const sep = s.includes('T') ? 'T' : ' ';
+  const parts = s.split(sep);
+  if (parts.length < 2) return null;
+  const dateParts = parts[0].split('-');
+  const timeParts = parts[1].split(':');
+
+  if (dateParts.length !== 3 || timeParts.length < 2) return null;
+
+  const year = parseInt(dateParts[0], 10);
+  const month = parseInt(dateParts[1], 10);
+  const day = parseInt(dateParts[2], 10);
+
+  const hour = parseInt(timeParts[0] || '0', 10);
+  const minute = parseInt(timeParts[1] || '0', 10);
+  const second = parseInt(timeParts[2] || '0', 10);
+
+  if ([year, month, day, hour, minute, second].some(n => Number.isNaN(n))) return null;
+
+  // Construct Date using local time components (month is 0-indexed)
+  const d = new Date(year, month - 1, day, hour, minute, second, 0);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/* ---------- Formatting helper: enforce YYYY-MM-DD HH:MM:SS (24-hour) ---------- */
+function formatDateTime(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 /* ---------- LEGENDS MODE ---------- */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
+  const tier = parseInt(document.getElementById("tier").value, 10);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  let rebateDate = parseLocalDate(rebateInput);
-  if (!rebateDate) return alert("Invalid rebate date format.");
+  const rebateDate = parseLocalDate(rebateInput);
+  if (!rebateDate) return alert("Invalid rebate date format. Use YYYY-MM-DD HH:MM:SS");
 
   const periodDays = tier === 2 ? 7 : 9;
 
-  const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
+  const purchaseLines = purchasesRaw.split(/\n+/).map(l => l.trim()).filter(l => l);
   const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  purchaseDates.sort((a,b)=>a-b);
-  const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
+  purchaseDates.sort((a,b) => a - b);
+  const lastPurchaseDate = purchaseDates[purchaseDates.length - 1];
 
-  let results = [];
+  const results = [];
   let rangeStart = new Date(rebateDate);
   let firstEvent = true;
 
-  while(rangeStart <= lastPurchaseDate){
+  while (rangeStart <= lastPurchaseDate) {
     let rangeEnd;
-
-    if(firstEvent){
-      // Legends first event special logic
+    if (firstEvent) {
       let firstDayEnd = new Date(rangeStart);
-      if(rangeStart.getHours() < 8){
+      if (rangeStart.getHours() < 8) {
         firstDayEnd.setHours(8,0,0,0);
       } else {
-        firstDayEnd.setDate(firstDayEnd.getDate()+1);
+        firstDayEnd.setDate(firstDayEnd.getDate() + 1);
         firstDayEnd.setHours(8,0,0,0);
       }
-
       rangeEnd = new Date(firstDayEnd);
-      rangeEnd.setDate(rangeEnd.getDate() + (periodDays-1));
+      rangeEnd.setDate(rangeEnd.getDate() + (periodDays - 1));
       rangeEnd.setHours(8,0,0,0);
       firstEvent = false;
     } else {
-      // Subsequent events start at 08:00 and run full periodDays
       rangeEnd = new Date(rangeStart);
       rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
     }
 
     const dayCounts = {};
-    const cutoffSeconds = 8*3600;
-    for(let dt of purchaseDates){
-      if(dt >= rangeStart && dt < rangeEnd){
-        let adjustedDate = new Date(dt);
-        const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
-        if(totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
-        const dayStr = adjustedDate.getFullYear()+'-'+String(adjustedDate.getMonth()+1).padStart(2,'0')+'-'+String(adjustedDate.getDate()).padStart(2,'0');
+    const cutoffSeconds = 8 * 3600;
+
+    for (let dt of purchaseDates) {
+      if (dt >= rangeStart && dt < rangeEnd) {
+        const adjustedDate = new Date(dt);
+        const totalSeconds = dt.getHours() * 3600 + dt.getMinutes() * 60 + dt.getSeconds();
+        if (totalSeconds < cutoffSeconds) {
+          adjustedDate.setDate(adjustedDate.getDate() - 1);
+        }
+        const dayStr = `${adjustedDate.getFullYear()}-${String(adjustedDate.getMonth()+1).padStart(2,'0')}-${String(adjustedDate.getDate()).padStart(2,'0')}`;
         dayCounts[dayStr] = 1;
       }
     }
@@ -124,92 +150,118 @@ function calculateLegends() {
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE (updated logic) ---------- */
+/* ---------- ACORN MODE (corrected purchase assignment to 24-hour rebate days) ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
+  const tier = parseInt(document.getElementById("tier").value, 10);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  let rebateDate = parseLocalDate(rebateInput);
-  if (!rebateDate) return alert("Invalid rebate date format.");
+  const rebateDate = parseLocalDate(rebateInput);
+  if (!rebateDate) return alert("Invalid rebate date format. Use YYYY-MM-DD HH:MM:SS");
 
   const periodDays = tier === 2 ? 7 : 9;
 
-  const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
+  const purchaseLines = purchasesRaw.split(/\n+/).map(l => l.trim()).filter(l => l);
   const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  purchaseDates.sort((a,b)=>a-b);
+  purchaseDates.sort((a,b) => a - b);
   const lastPurchaseDate = purchaseDates[purchaseDates.length - 1];
 
-  let results = [];
+  const results = [];
   let rangeStart = new Date(rebateDate);
 
+  // Helper: create a new Date instance copied from d
+  const copyDate = d => new Date(d.getTime());
+
   while (rangeStart <= lastPurchaseDate) {
-    // Define the overall rebate range for this cycle
-    let rangeEnd = new Date(rangeStart);
+    const rangeEnd = new Date(rangeStart);
     rangeEnd.setDate(rangeEnd.getDate() + periodDays);
 
+    // Build each 24-hour rebate-day subwindow relative to rangeStart
+    const dayWindows = [];
+    for (let i = 0; i < periodDays; i++) {
+      const dayStart = copyDate(rangeStart);
+      dayStart.setDate(rangeStart.getDate() + i);
+      const dayEnd = copyDate(dayStart);
+      dayEnd.setDate(dayStart.getDate() + 1);
+      dayWindows.push({ start: dayStart, end: dayEnd, label: `Day ${i+1}` });
+    }
+
+    // Track which day labels have at least one purchase
     const dayCounts = {};
+
     for (let dt of purchaseDates) {
       if (dt >= rangeStart && dt < rangeEnd) {
-        // Compute which "rebate day" this purchase falls into
-        const diffMs = dt - rangeStart;
-        const diffDays = Math.floor(diffMs / (24 * 3600 * 1000)); // integer day offset
-        const dayLabel = `Day ${diffDays + 1}`;
-        dayCounts[dayLabel] = 1;
+        // find the window this dt belongs to
+        for (let w of dayWindows) {
+          if (dt >= w.start && dt < w.end) {
+            // Optionally store the window date for clarity (we'll show label + date)
+            const dayDateLabel = `${formatDateTime(w.start)} → ${formatDateTime(w.end)}`;
+            // Use a combined label to avoid collision if you prefer date; here keep 'Day X'
+            dayCounts[w.label] = {
+              label: w.label,
+              range: dayDateLabel
+            };
+            break;
+          }
+        }
       }
     }
+
+    // uniqueDays: produce an ordered array like ["Day 1 (2025-06-11 01:12:41 → 2025-06-12 01:12:41)", ...]
+    const uniqueDays = Object.keys(dayCounts)
+      .map(k => {
+        const v = dayCounts[k];
+        return `${v.label} (${v.range})`;
+      })
+      .sort((a,b) => {
+        // sort by day number
+        const numA = parseInt(a.match(/Day (\d+)/)[1], 10);
+        const numB = parseInt(b.match(/Day (\d+)/)[1], 10);
+        return numA - numB;
+      });
 
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
-      uniqueDays: Object.keys(dayCounts).sort((a, b) => {
-        const numA = parseInt(a.split(' ')[1]);
-        const numB = parseInt(b.split(' ')[1]);
-        return numA - numB;
-      }),
-      totalPurchases: Object.keys(dayCounts).length
+      uniqueDays: uniqueDays,
+      totalPurchases: uniqueDays.length
     });
 
+    // advance to next period
     rangeStart = new Date(rangeEnd);
   }
 
   renderTable(results, "#FFD700", "ACORN");
 }
 
-/* ---------- Shared render function (24-hour format) ---------- */
-function renderTable(results, headerColor, modeLabel){
+/* ---------- Shared render function (24-hour fixed format; matches input) ---------- */
+function renderTable(results, headerColor, modeLabel) {
   document.getElementById("modeLabel").innerHTML = `<span style="color:${headerColor}">Results — ${modeLabel} Mode</span>`;
-  let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
+  let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days (per-period)</th><th>Total Unique Days</th></tr>';
 
-  // Uniform 24-hour date-time format
-  function formatDateTime(d) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
-
-  results.forEach(r => {
+  for (let r of results) {
     const highlightClass = r.totalPurchases > 0 ? 'valid-range' : '';
     const startStr = formatDateTime(r.start);
     const endStr = formatDateTime(r.end);
+    const uniqueDaysHtml = (r.uniqueDays && r.uniqueDays.length) ? r.uniqueDays.join('<br>') : '-';
     tableHTML += `<tr class="${highlightClass}">
       <td>${startStr}</td>
       <td>${endStr}</td>
-      <td>${r.uniqueDays.join('<br>') || '-'}</td>
+      <td>${uniqueDaysHtml}</td>
       <td>${r.totalPurchases}</td>
     </tr>`;
-  });
+  }
 
   tableHTML += '</table>';
   document.getElementById("result").innerHTML = tableHTML;
 
-  // Style the table headers
   const table = document.querySelector("#result table");
-  if(table){
+  if (table) {
     const headers = table.querySelectorAll("th");
-    headers.forEach(th=>{
+    headers.forEach(th => {
       th.style.backgroundColor = headerColor;
       th.style.color = "white";
     });
