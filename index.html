@@ -2,18 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rebate Calendar Calculator</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  input, select, textarea { display: block; margin-bottom: 10px; width: 320px; padding: 5px; }
+  input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
   textarea { height: 150px; }
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
-  .valid-range { background-color: #c6efce; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  .valid-range { background-color: #c6efce; } /* green highlight */
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
-  .small { font-size: 0.9rem; color: #333; }
 </style>
 </head>
 <body>
@@ -32,29 +31,37 @@
 <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
 <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
 
-<button onclick="calculateLegends()" style="background-color:#8A2BE2;color:white;">Calculate (LEGENDS)</button>
-<button onclick="calculateAcorn()" style="background-color:#FFD700;color:black;">Calculate (ACORN)</button>
+<button id="calcBtnLegends" onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">
+  Calculate (LEGENDS)
+</button>
+
+<button id="calcBtnAcorn" onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">
+  Calculate (ACORN)
+</button>
 
 <h3>4. Result</h3>
 <div id="modeLabel"></div>
-<div id="result" class="small"></div>
+<div id="result"></div>
 
 <script>
-/* ---------- Parse strict local datetime "YYYY-MM-DD HH:MM:SS" ---------- */
+/* ---------- Utility to parse local datetime string ---------- */
 function parseLocalDate(str) {
-  if (!str) return null;
-  const [datePart, timePart] = str.trim().split(' ');
-  if (!datePart || !timePart) return null;
-  const [Y,M,D] = datePart.split('-').map(Number);
-  const [h,m,s] = timePart.split(':').map(Number);
-  const d = new Date(Y, M-1, D, h, m, s || 0);
+  if(!str) return null;
+  const t = str.trim().replace(" ","T");
+  const d = new Date(t);
   return isNaN(d) ? null : d;
 }
 
-/* ---------- Format YYYY-MM-DD HH:MM:SS (24-hour) ---------- */
-function fmt(d) {
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+/* ---------- Helper: Format DateTime in 24-hour format ---------- */
+function formatDateTime(date){
+  const pad = n => n.toString().padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/* ---------- Helper: Format Date only (YYYY-MM-DD) ---------- */
+function formatDateOnly(date){
+  const pad = n => n.toString().padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
 }
 
 /* ---------- LEGENDS MODE ---------- */
@@ -64,128 +71,149 @@ function calculateLegends() {
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  const rebateDate = parseLocalDate(rebateInput);
+  let rebateDate = parseLocalDate(rebateInput);
   if (!rebateDate) return alert("Invalid rebate date format.");
+
   const periodDays = tier === 2 ? 7 : 9;
 
-  const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  if (!purchaseDates.length) return alert("No valid purchase dates.");
+  const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
+  const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
+  if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  const lastPurchase = purchaseDates[purchaseDates.length-1];
-  const results = [];
+  purchaseDates.sort((a,b)=>a-b);
+  const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
+
+  let results = [];
   let rangeStart = new Date(rebateDate);
   let firstEvent = true;
 
-  while (rangeStart <= lastPurchase) {
+  while(rangeStart <= lastPurchaseDate){
     let rangeEnd;
-    if (firstEvent) {
-      let firstEnd = new Date(rangeStart);
-      if (firstEnd.getHours() < 8) firstEnd.setHours(8,0,0,0);
-      else { firstEnd.setDate(firstEnd.getDate()+1); firstEnd.setHours(8,0,0,0); }
-      rangeEnd = new Date(firstEnd);
-      rangeEnd.setDate(rangeEnd.getDate()+(periodDays-1));
+
+    if(firstEvent){
+      // Legends first event special logic
+      let firstDayEnd = new Date(rangeStart);
+      if(rangeStart.getHours() < 8){
+        firstDayEnd.setHours(8,0,0,0);
+      } else {
+        firstDayEnd.setDate(firstDayEnd.getDate()+1);
+        firstDayEnd.setHours(8,0,0,0);
+      }
+
+      rangeEnd = new Date(firstDayEnd);
+      rangeEnd.setDate(rangeEnd.getDate() + (periodDays-1));
       rangeEnd.setHours(8,0,0,0);
       firstEvent = false;
     } else {
+      // Subsequent events start at 08:00 and run full periodDays
       rangeEnd = new Date(rangeStart);
-      rangeEnd.setDate(rangeEnd.getDate()+periodDays);
+      rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
     }
 
     const dayCounts = {};
-    for (const dt of purchaseDates) {
-      if (dt >= rangeStart && dt < rangeEnd) {
-        const cutoffSec = 8*3600;
-        const secs = dt.getHours()*3600+dt.getMinutes()*60+dt.getSeconds();
-        const adj = new Date(dt);
-        if (secs < cutoffSec) adj.setDate(adj.getDate()-1);
-        const k = `${adj.getFullYear()}-${String(adj.getMonth()+1).padStart(2,'0')}-${String(adj.getDate()).padStart(2,'0')}`;
-        dayCounts[k] = 1;
+    const cutoffSeconds = 8*3600;
+    for(let dt of purchaseDates){
+      if(dt >= rangeStart && dt < rangeEnd){
+        let adjustedDate = new Date(dt);
+        const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
+        if(totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
+        const dayStr = formatDateOnly(adjustedDate);
+        dayCounts[dayStr] = 1;
       }
     }
 
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
-      uniqueDays: Object.keys(dayCounts),
+      uniqueDays: Object.keys(dayCounts).sort(),
       totalPurchases: Object.keys(dayCounts).length
     });
 
     rangeStart = new Date(rangeEnd);
   }
 
-  renderTable(results, "#8A2BE2", "LEGENDS");
+  renderTable(results, "#8A2BE2", "LEGENDS", false);
 }
 
-/* ---------- ACORN MODE (True 24-hour rolling windows) ---------- */
+/* ---------- ACORN MODE ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
 
-  const rebateDate = parseLocalDate(rebateInput);
+  let rebateDate = parseLocalDate(rebateInput);
   if (!rebateDate) return alert("Invalid rebate date format.");
+
   const periodDays = tier === 2 ? 7 : 9;
-  const msPerDay = 24*60*60*1000;
 
-  const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  if (!purchaseDates.length) return alert("No valid purchase dates.");
+  const purchaseLines = purchasesRaw.split(/\n+/).map(line => line.trim()).filter(line => line);
+  const purchaseDates = purchaseLines.map(parseLocalDate).filter(dt => dt);
+  if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
-  const lastPurchase = purchaseDates[purchaseDates.length-1];
-  const results = [];
+  purchaseDates.sort((a,b)=>a-b);
+  const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
+
+  let results = [];
   let rangeStart = new Date(rebateDate);
 
-  while (rangeStart <= lastPurchase) {
-    const rangeEnd = new Date(rangeStart.getTime() + periodDays*msPerDay);
-    const dayWindows = Array.from({length: periodDays}, (_,i)=>{
-      const start = new Date(rangeStart.getTime() + i*msPerDay);
-      const end = new Date(start.getTime() + msPerDay);
-      return {start,end,label:`Day ${i+1}`};
-    });
+  while(rangeStart <= lastPurchaseDate){
+    let rangeEnd = new Date(rangeStart);
+    rangeEnd.setDate(rangeEnd.getDate() + 1); // 24-hour period
+    rangeEnd.setHours(rangeStart.getHours(), rangeStart.getMinutes(), rangeStart.getSeconds());
 
-    const activeDays = new Set();
-    for (const dt of purchaseDates) {
-      if (dt >= rangeStart && dt < rangeEnd) {
-        for (const w of dayWindows) {
-          if (dt >= w.start && dt < w.end) {
-            activeDays.add(`${w.label} (${fmt(w.start)} → ${fmt(w.end)})`);
-            break;
-          }
-        }
+    const dayCounts = {};
+    for(let dt of purchaseDates){
+      if(dt >= rangeStart && dt < rangeEnd){
+        const dayStr = formatDateOnly(rangeStart); // Assign purchases to the date of the range start
+        dayCounts[dayStr] = 1;
       }
     }
 
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
-      uniqueDays: [...activeDays],
-      totalPurchases: activeDays.size
+      uniqueDays: Object.keys(dayCounts).sort(),
+      totalPurchases: Object.keys(dayCounts).length
     });
 
     rangeStart = new Date(rangeEnd);
   }
 
-  renderTable(results, "#FFD700", "ACORN");
+  renderTable(results, "#FFD700", "ACORN", true);
 }
 
-/* ---------- Table Renderer ---------- */
-function renderTable(results, color, label) {
-  document.getElementById("modeLabel").innerHTML = `<span style="color:${color}">Results — ${label} Mode</span>`;
-  let html = `<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>`;
-  for (const r of results) {
-    const cls = r.totalPurchases ? "valid-range" : "";
-    html += `<tr class="${cls}">
-      <td>${fmt(r.start)}</td>
-      <td>${fmt(r.end)}</td>
-      <td>${r.uniqueDays.length ? r.uniqueDays.join("<br>") : "-"}</td>
+/* ---------- Shared render function ---------- */
+function renderTable(results, headerColor, modeLabel, isAcorn){
+  document.getElementById("modeLabel").innerHTML = `<span style="color:${headerColor}">Results — ${modeLabel} Mode</span>`;
+  let tableHTML = '<table><tr><th>Range</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
+
+  results.forEach(r=>{
+    const highlightClass = r.totalPurchases > 0 ? 'valid-range' : '';
+    const rangeDisplay = isAcorn ? 
+        formatDateOnly(r.start) : 
+        `${formatDateTime(r.start)} → ${formatDateTime(r.end)}`;
+    tableHTML += `<tr class="${highlightClass}">
+      <td>${rangeDisplay}</td>
+      <td>${r.uniqueDays.join('<br>') || '-'}</td>
       <td>${r.totalPurchases}</td>
     </tr>`;
+  });
+
+  tableHTML += '</table>';
+  document.getElementById("result").innerHTML = tableHTML;
+
+  const table = document.querySelector("#result table");
+  if(table){
+    const headers = table.querySelectorAll("th");
+    headers.forEach(th=>{
+      th.style.backgroundColor = headerColor;
+      th.style.color = "white";
+    });
   }
-  html += "</table>";
-  document.getElementById("result").innerHTML = html;
-  document.querySelectorAll("th").forEach(th => { th.style.backgroundColor=color; th.style.color="white"; });
 }
 </script>
+
 </body>
 </html>
