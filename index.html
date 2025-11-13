@@ -52,7 +52,7 @@ function parseLocalDate(str) {
   return isNaN(d) ? null : d;
 }
 
-/* ---------- Formatter for consistent 24-hour format ---------- */
+/* ---------- Uniform 24-hour date formatter ---------- */
 function formatDateTime(d) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
@@ -85,7 +85,6 @@ function calculateLegends() {
     let rangeEnd;
 
     if(firstEvent){
-      // Legends first event special logic
       let firstDayEnd = new Date(rangeStart);
       if(rangeStart.getHours() < 8){
         firstDayEnd.setHours(8,0,0,0);
@@ -99,7 +98,6 @@ function calculateLegends() {
       rangeEnd.setHours(8,0,0,0);
       firstEvent = false;
     } else {
-      // Subsequent events start at 08:00 and run full periodDays
       rangeEnd = new Date(rangeStart);
       rangeEnd.setDate(rangeEnd.getDate() + periodDays);
       rangeEnd.setHours(8,0,0,0);
@@ -154,12 +152,13 @@ function calculateAcorn() {
 
   while(rangeStart <= lastPurchaseDate){
     let rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + 1); // 24 hours per period
+    rangeEnd.setDate(rangeEnd.getDate() + periodDays); // maintain full period days window
 
     const dayCounts = {};
     for(let dt of purchaseDates){
       if(dt >= rangeStart && dt < rangeEnd){
-        const dayStr = rangeStart.getFullYear()+'-'+String(rangeStart.getMonth()+1).padStart(2,'0')+'-'+String(rangeStart.getDate()).padStart(2,'0');
+        // Assign purchases within the 24-hour window starting at rangeStart
+        const dayStr = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
         dayCounts[dayStr] = 1;
       }
     }
@@ -187,13 +186,8 @@ function renderTable(results, headerColor, modeLabel){
     const startStr = formatDateTime(r.start);
     const endStr = formatDateTime(r.end);
 
-    // For ACORN mode, show only the actual date in "Unique Days"
-    let uniqueDisplay = '-';
-    if (modeLabel === "ACORN") {
-      uniqueDisplay = r.uniqueDays.length > 0 ? r.uniqueDays.join('<br>') : '-';
-    } else {
-      uniqueDisplay = r.uniqueDays.join('<br>') || '-';
-    }
+    // ACORN shows only actual purchase dates
+    const uniqueDisplay = r.uniqueDays.length > 0 ? r.uniqueDays.join('<br>') : '-';
 
     tableHTML += `<tr class="${highlightClass}">
       <td>${startStr}</td>
