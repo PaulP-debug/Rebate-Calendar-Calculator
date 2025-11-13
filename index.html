@@ -124,7 +124,7 @@ function calculateLegends() {
   renderTable(results, "#8A2BE2", "LEGENDS");
 }
 
-/* ---------- ACORN MODE ---------- */
+/* ---------- ACORN MODE (updated logic) ---------- */
 function calculateAcorn() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -141,27 +141,35 @@ function calculateAcorn() {
   if (purchaseDates.length === 0) return alert("No valid purchase dates.");
 
   purchaseDates.sort((a,b)=>a-b);
-  const lastPurchaseDate = purchaseDates[purchaseDates.length-1];
+  const lastPurchaseDate = purchaseDates[purchaseDates.length - 1];
 
   let results = [];
   let rangeStart = new Date(rebateDate);
 
-  while(rangeStart <= lastPurchaseDate){
+  while (rangeStart <= lastPurchaseDate) {
+    // Define the overall rebate range for this cycle
     let rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + periodDays); // 24-hour ranges, no 08:00 snap
+    rangeEnd.setDate(rangeEnd.getDate() + periodDays);
 
     const dayCounts = {};
-    for(let dt of purchaseDates){
-      if(dt >= rangeStart && dt < rangeEnd){
-        const dayStr = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
-        dayCounts[dayStr] = 1;
+    for (let dt of purchaseDates) {
+      if (dt >= rangeStart && dt < rangeEnd) {
+        // Compute which "rebate day" this purchase falls into
+        const diffMs = dt - rangeStart;
+        const diffDays = Math.floor(diffMs / (24 * 3600 * 1000)); // integer day offset
+        const dayLabel = `Day ${diffDays + 1}`;
+        dayCounts[dayLabel] = 1;
       }
     }
 
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
-      uniqueDays: Object.keys(dayCounts).sort(),
+      uniqueDays: Object.keys(dayCounts).sort((a, b) => {
+        const numA = parseInt(a.split(' ')[1]);
+        const numB = parseInt(b.split(' ')[1]);
+        return numA - numB;
+      }),
       totalPurchases: Object.keys(dayCounts).length
     });
 
@@ -171,16 +179,24 @@ function calculateAcorn() {
   renderTable(results, "#FFD700", "ACORN");
 }
 
-/* ---------- Shared render function ---------- */
+/* ---------- Shared render function (24-hour format) ---------- */
 function renderTable(results, headerColor, modeLabel){
   document.getElementById("modeLabel").innerHTML = `<span style="color:${headerColor}">Results — ${modeLabel} Mode</span>`;
   let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
 
-  results.forEach(r=>{
+  // Uniform 24-hour date-time format
+  function formatDateTime(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  results.forEach(r => {
     const highlightClass = r.totalPurchases > 0 ? 'valid-range' : '';
+    const startStr = formatDateTime(r.start);
+    const endStr = formatDateTime(r.end);
     tableHTML += `<tr class="${highlightClass}">
-      <td>${r.start.toLocaleString()}</td>
-      <td>${r.end.toLocaleString()}</td>
+      <td>${startStr}</td>
+      <td>${endStr}</td>
       <td>${r.uniqueDays.join('<br>') || '-'}</td>
       <td>${r.totalPurchases}</td>
     </tr>`;
@@ -189,6 +205,7 @@ function renderTable(results, headerColor, modeLabel){
   tableHTML += '</table>';
   document.getElementById("result").innerHTML = tableHTML;
 
+  // Style the table headers
   const table = document.querySelector("#result table");
   if(table){
     const headers = table.querySelectorAll("th");
