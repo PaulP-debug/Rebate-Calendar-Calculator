@@ -11,7 +11,7 @@
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-  .valid-range { background-color: #c6efce; }
+  .valid-range { background-color: #c6efce; } /* green highlight */
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
 </style>
 </head>
@@ -52,10 +52,16 @@ function parseLocalDate(str) {
   return isNaN(d) ? null : d;
 }
 
-/* ---------- Uniform 24-hour date formatter ---------- */
-function formatDateTime(d) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+/* ---------- Helper: Format DateTime in 24-hour format ---------- */
+function formatDateTime(date){
+  const pad = n => n.toString().padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/* ---------- Helper: Format Date only (YYYY-MM-DD) ---------- */
+function formatDateOnly(date){
+  const pad = n => n.toString().padStart(2,'0');
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
 }
 
 /* ---------- LEGENDS MODE ---------- */
@@ -110,7 +116,7 @@ function calculateLegends() {
         let adjustedDate = new Date(dt);
         const totalSeconds = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
         if(totalSeconds < cutoffSeconds) adjustedDate.setDate(adjustedDate.getDate()-1);
-        const dayStr = adjustedDate.getFullYear()+'-'+String(adjustedDate.getMonth()+1).padStart(2,'0')+'-'+String(adjustedDate.getDate()).padStart(2,'0');
+        const dayStr = formatDateOnly(adjustedDate);
         dayCounts[dayStr] = 1;
       }
     }
@@ -125,7 +131,7 @@ function calculateLegends() {
     rangeStart = new Date(rangeEnd);
   }
 
-  renderTable(results, "#8A2BE2", "LEGENDS");
+  renderTable(results, "#8A2BE2", "LEGENDS", false);
 }
 
 /* ---------- ACORN MODE ---------- */
@@ -152,13 +158,13 @@ function calculateAcorn() {
 
   while(rangeStart <= lastPurchaseDate){
     let rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + periodDays); // maintain full period days window
+    rangeEnd.setDate(rangeEnd.getDate() + 1);
+    rangeEnd.setHours(rangeStart.getHours(), rangeStart.getMinutes(), rangeStart.getSeconds());
 
     const dayCounts = {};
     for(let dt of purchaseDates){
       if(dt >= rangeStart && dt < rangeEnd){
-        // Assign purchases within the 24-hour window starting at rangeStart
-        const dayStr = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+        const dayStr = formatDateOnly(rangeStart); // Assign purchases to date of range start
         dayCounts[dayStr] = 1;
       }
     }
@@ -166,6 +172,7 @@ function calculateAcorn() {
     results.push({
       start: new Date(rangeStart),
       end: new Date(rangeEnd),
+      displayDate: formatDateOnly(rangeStart), // <-- Only this date will be displayed
       uniqueDays: Object.keys(dayCounts).sort(),
       totalPurchases: Object.keys(dayCounts).length
     });
@@ -173,26 +180,22 @@ function calculateAcorn() {
     rangeStart = new Date(rangeEnd);
   }
 
-  renderTable(results, "#FFD700", "ACORN");
+  renderTable(results, "#FFD700", "ACORN", true);
 }
 
 /* ---------- Shared render function ---------- */
-function renderTable(results, headerColor, modeLabel){
+function renderTable(results, headerColor, modeLabel, isAcorn){
   document.getElementById("modeLabel").innerHTML = `<span style="color:${headerColor}">Results — ${modeLabel} Mode</span>`;
-  let tableHTML = '<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
+  let tableHTML = '<table><tr><th>' + (isAcorn ? 'Date' : 'Range') + '</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
 
   results.forEach(r=>{
     const highlightClass = r.totalPurchases > 0 ? 'valid-range' : '';
-    const startStr = formatDateTime(r.start);
-    const endStr = formatDateTime(r.end);
-
-    // ACORN shows only actual purchase dates
-    const uniqueDisplay = r.uniqueDays.length > 0 ? r.uniqueDays.join('<br>') : '-';
-
+    const rangeDisplay = isAcorn ? 
+        r.displayDate : 
+        `${formatDateTime(r.start)} → ${formatDateTime(r.end)}`;
     tableHTML += `<tr class="${highlightClass}">
-      <td>${startStr}</td>
-      <td>${endStr}</td>
-      <td>${uniqueDisplay}</td>
+      <td>${rangeDisplay}</td>
+      <td>${r.uniqueDays.join('<br>') || '-'}</td>
       <td>${r.totalPurchases}</td>
     </tr>`;
   });
