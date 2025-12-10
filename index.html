@@ -3,222 +3,227 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rebate Calendar Calculator</title>
+<title>Combined Tools</title>
 <style>
+  /* ---------- Global Styles ---------- */
   body { font-family: Arial, sans-serif; padding: 20px; }
-  input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
-  textarea { height: 150px; }
-  button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
-  table { border-collapse: collapse; margin-top: 10px; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-  .valid-range { background-color: #c6efce; }
-  #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
-  #loginContainer { text-align:center; margin-top:100px; }
+  button { cursor: pointer; }
+  .hidden { display: none; }
+
+  /* ---------- Login ---------- */
+  #loginContainer { text-align: center; margin-top: 100px; }
+  #loginContainer input { padding: 8px; margin: 5px; width: 200px; }
+
+  /* ---------- Tabs ---------- */
+  #tabs { display: flex; border-bottom: 2px solid #ccc; margin-bottom: 10px; }
+  .tab-btn { padding: 10px 20px; border: none; background: #f0f0f0; margin-right: 2px; font-weight: bold; }
+  .tab-btn.active { background: #fff; border-bottom: 2px solid white; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ---------- Rebate Calculator Styles ---------- */
+  #rebateCalculator input, #rebateCalculator select, #rebateCalculator textarea { display:block; margin-bottom:10px; width:300px; padding:5px; }
+  #rebateCalculator textarea { height:150px; }
+  #rebateCalculator table { border-collapse: collapse; margin-top: 10px; width: 100%; }
+  #rebateCalculator th, #rebateCalculator td { border:1px solid #ccc; padding:8px; text-align:left; }
+  #rebateCalculator .valid-range { background-color: #c6efce; }
+  #rebateCalculator #modeLabel { font-size:18px; font-weight:bold; margin-top:20px; }
+
+  /* ---------- Subscription Analyzer Styles ---------- */
+  #subscriptionAnalyzer .container { display:flex; gap:20px; }
+  #subscriptionAnalyzer .left-box { flex:1; }
+  #subscriptionAnalyzer .right-box { flex:1; border:1px solid #ccc; padding:10px; max-height:300px; overflow-y:auto; background:#f9f9f9; }
+  #subscriptionAnalyzer textarea.purchase, #subscriptionAnalyzer textarea.claim { width:100%; height:80px; font-family:monospace; resize:vertical; margin-bottom:10px; }
+  #subscriptionAnalyzer .tables-container { display:flex; gap:20px; flex-wrap:wrap; }
+  #subscriptionAnalyzer .table-box { display:inline-block; vertical-align:top; }
+  #subscriptionAnalyzer table { border-collapse: collapse; table-layout: fixed; white-space: nowrap; font-size:14px; margin-bottom:20px; }
+  #subscriptionAnalyzer th, #subscriptionAnalyzer td { border:1px solid #999; padding:4px 6px; text-align:left; overflow:hidden; text-overflow:ellipsis; }
+  #subscriptionAnalyzer th { background:#f0f0f0; font-weight:bold; }
+  #subscriptionAnalyzer .header-title { font-size:16px; text-align:center; }
+  #subscriptionAnalyzer .header-title.sub7 { background:#cce5ff; }
+  #subscriptionAnalyzer .header-title.sub30 { background:#d4edda; }
+  #subscriptionAnalyzer .header-title.sub90 { background:#fff3cd; }
+  #subscriptionAnalyzer .total-days { background:#fff3b0; font-weight:bold; text-align:center; }
+  #subscriptionAnalyzer .claimed { background:#c8f7c5; color:#155724; font-weight:bold; }
+  #subscriptionAnalyzer .missed { background:#f8d0d0; color:#8b0000; font-weight:bold; }
+  #subscriptionAnalyzer .summary-title { font-weight:bold; margin-bottom:10px; }
+  #subscriptionAnalyzer .summary-item { margin-bottom:6px; padding:4px 6px; border-radius:4px; color:#000; font-weight:bold; }
+  #subscriptionAnalyzer .summary-sub7 { background:#cce5ff; }
+  #subscriptionAnalyzer .summary-sub30 { background:#d4edda; }
+  #subscriptionAnalyzer .summary-sub90 { background:#fff3cd; }
 </style>
 </head>
 <body>
 
-<!-- 🔐 LOGIN SECTION -->
+<!-- 🔐 LOGIN -->
 <div id="loginContainer">
   <h2>Login</h2>
-  <p>Please enter your credentials to access the calculator.</p>
-  <input type="text" id="username" placeholder="Username" style="padding:8px; margin:5px;">
-  <input type="password" id="password" placeholder="Password" style="padding:8px; margin:5px;">
+  <p>Please enter your credentials to access the tools.</p>
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
   <br>
-  <button onclick="login()" style="padding:8px 20px;">Login</button>
+  <button onclick="login()">Login</button>
   <p id="loginMessage" style="color:red;"></p>
 </div>
 
-<!-- 🔧 MAIN APP CONTENT -->
-<div id="appContainer" style="display:none;">
+<!-- 🛠️ APP -->
+<div id="appContainer" class="hidden">
 
-  <h2>Rebate Calendar Calculator</h2>
+  <!-- Tabs -->
+  <div id="tabs">
+    <button class="tab-btn active" onclick="switchTab('rebateCalculator')">Rebate Calculator</button>
+    <button class="tab-btn" onclick="switchTab('subscriptionAnalyzer')">Subscription Analyzer</button>
+    <button style="margin-left:auto;background:#f44336;color:white;" onclick="logout()">Logout</button>
+  </div>
 
-  <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-  <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
+  <!-- Tab 1: Rebate Calculator -->
+  <div id="rebateCalculator" class="tab-content active">
+    <h2>Rebate Calendar Calculator</h2>
+    <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
+    <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
+    <label for="tier">2. Tier</label>
+    <select id="tier">
+      <option value="2">Tier 2 (7 days)</option>
+      <option value="3">Tier 3 (9 days)</option>
+    </select>
+    <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
+    <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
+    <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
+    <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
 
-  <label for="tier">2. Tier</label>
-  <select id="tier">
-    <option value="2">Tier 2 (7 days)</option>
-    <option value="3">Tier 3 (9 days)</option>
-  </select>
+    <h3>4. Result</h3>
+    <div id="modeLabel"></div>
+    <div id="result"></div>
+    <p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">— by: Paul P</p>
+  </div>
 
-  <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
-  <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
+  <!-- Tab 2: Subscription Analyzer -->
+  <div id="subscriptionAnalyzer" class="tab-content">
+    <h2>Subscription Analyzer</h2>
+    <div class="container">
+      <div class="left-box">
+        <label>Purchase Data (compressed, 7-column, tab-separated):</label>
+        <textarea id="purchaseDataSub" class="purchase"></textarea>
+        <label>Claim Data (3-line per claim):</label>
+        <textarea id="claimDataSub" class="claim"></textarea>
+        <button onclick="analyzeSub()">Analyze</button>
+      </div>
+      <div class="right-box" id="summaryBoxSub">
+        <div class="summary-title">Purchase Summary</div>
+        <div id="summaryContentSub">No data yet.</div>
+      </div>
+    </div>
+    <div id="resultsSub" class="tables-container"></div>
+  </div>
 
-  <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
-  <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
-  <button onclick="logout()" style="background-color:#f44336; color:white;">Logout</button>
-
-  <h3>4. Result</h3>
-  <div id="modeLabel"></div>
-  <div id="result"></div>
 </div>
 
 <script>
-/* ---------- SIMPLE LOGIN ---------- */
+/* ---------- LOGIN ---------- */
 const USERNAME = "LEGENDS_ADMIN";
 const PASSWORD = "AcornLegends2025";
-
-function login() {
+function login(){
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
   const msg = document.getElementById("loginMessage");
-  if (u === USERNAME && p === PASSWORD) {
-    document.getElementById("loginContainer").style.display = "none";
-    document.getElementById("appContainer").style.display = "block";
-    localStorage.setItem("loggedIn", "true");
-  } else msg.textContent = "Invalid username or password.";
+  if(u===USERNAME && p===PASSWORD){
+    document.getElementById("loginContainer").classList.add("hidden");
+    document.getElementById("appContainer").classList.remove("hidden");
+    localStorage.setItem("loggedIn","true");
+  } else msg.textContent="Invalid username or password.";
+}
+if(localStorage.getItem("loggedIn")==="true"){
+  document.getElementById("loginContainer").classList.add("hidden");
+  document.getElementById("appContainer").classList.remove("hidden");
+}
+function logout(){ localStorage.removeItem("loggedIn"); location.reload(); }
+
+/* ---------- TAB SWITCH ---------- */
+function switchTab(tabId){
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
+  document.querySelector('.tab-btn[onclick*="'+tabId+'"]').classList.add('active');
+  document.getElementById(tabId).classList.add('active');
 }
 
-if (localStorage.getItem("loggedIn") === "true") {
-  document.getElementById("loginContainer").style.display = "none";
-  document.getElementById("appContainer").style.display = "block";
-}
-function logout() {
-  localStorage.removeItem("loggedIn");
-  location.reload();
-}
+/* ---------- Rebate Calculator JS ---------- */
+function parseLocalDate(str){ if(!str)return null; const t=str.trim().replace(" ","T"); const d=new Date(t); return isNaN(d)?null:d; }
+function format24h(dt){ const yyyy=dt.getFullYear(); const mm=String(dt.getMonth()+1).padStart(2,'0'); const dd=String(dt.getDate()).padStart(2,'0'); const hh=String(dt.getHours()).padStart(2,'0'); const mi=String(dt.getMinutes()).padStart(2,'0'); const ss=String(dt.getSeconds()).padStart(2,'0'); return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`; }
 
-/* ---------- Utility ---------- */
-function parseLocalDate(str) {
-  if(!str) return null;
-  const t = str.trim().replace(" ","T");
-  const d = new Date(t);
-  return isNaN(d) ? null : d;
-}
-
-function format24h(dt) {
-  const yyyy = dt.getFullYear();
-  const mm = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
-  const hh = String(dt.getHours()).padStart(2,'0');
-  const mi = String(dt.getMinutes()).padStart(2,'0');
-  const ss = String(dt.getSeconds()).padStart(2,'0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-}
-
-/* ---------- LEGENDS MODE ---------- */
-function calculateLegends() {
-  const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
-  const purchasesRaw = document.getElementById("purchaseDates").value.trim();
-  if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
-
-  let rebateDate = parseLocalDate(rebateInput);
-  if (!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays = tier === 2 ? 7 : 9;
-  const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  const lastPurchase = purchaseDates[purchaseDates.length-1];
-
-  let results = [];
-  let rangeStart = new Date(rebateDate);
-  let firstEvent = true;
-  while(rangeStart <= lastPurchase){
-    let rangeEnd;
+function calculateLegends(){
+  const rebateInput=document.getElementById("rebateDate").value.trim();
+  const tier=parseInt(document.getElementById("tier").value);
+  const purchasesRaw=document.getElementById("purchaseDates").value.trim();
+  if(!rebateInput||!purchasesRaw)return alert("Please enter all fields.");
+  let rebateDate=parseLocalDate(rebateInput);
+  if(!rebateDate)return alert("Invalid rebate date format.");
+  const periodDays=tier===2?7:9;
+  const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
+  const lastPurchase=purchaseDates[purchaseDates.length-1];
+  let results=[], rangeStart=new Date(rebateDate), firstEvent=true;
+  while(rangeStart<=lastPurchase){
+    let rangeEnd=new Date(rangeStart);
     if(firstEvent){
-      rangeEnd = new Date(rangeStart);
-      if(rangeStart.getHours()<8){
-        rangeEnd.setHours(8,0,0,0);
-      } else {
-        rangeEnd.setDate(rangeEnd.getDate()+1);
-        rangeEnd.setHours(8,0,0,0);
-      }
+      if(rangeStart.getHours()<8){ rangeEnd.setHours(8,0,0,0); } else { rangeEnd.setDate(rangeEnd.getDate()+1); rangeEnd.setHours(8,0,0,0); }
       rangeEnd.setDate(rangeEnd.getDate()+(periodDays-1));
       firstEvent=false;
-    } else {
-      rangeEnd = new Date(rangeStart);
-      rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-      rangeEnd.setHours(8,0,0,0);
-    }
-
-    const dayCounts={};
-    const cutoff=8*3600;
-    for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
-        let adjusted=new Date(dt);
-        const sec=dt.getHours()*3600+dt.getMinutes()*60+dt.getSeconds();
-        if(sec<cutoff) adjusted.setDate(adjusted.getDate()-1);
-        const key=`${adjusted.getFullYear()}-${String(adjusted.getMonth()+1).padStart(2,'0')}-${String(adjusted.getDate()).padStart(2,'0')}`;
-        dayCounts[key]=1;
-      }
-    }
+    } else { rangeEnd.setDate(rangeEnd.getDate()+periodDays); rangeEnd.setHours(8,0,0,0); }
+    const dayCounts={}; const cutoff=8*3600;
+    for(let dt of purchaseDates){ if(dt>=rangeStart && dt<rangeEnd){ let adjusted=new Date(dt); const sec=dt.getHours()*3600+dt.getMinutes()*60+dt.getSeconds(); if(sec<cutoff) adjusted.setDate(adjusted.getDate()-1); const key=`${adjusted.getFullYear()}-${String(adjusted.getMonth()+1).padStart(2,'0')}-${String(adjusted.getDate()).padStart(2,'0')}`; dayCounts[key]=1; } }
     results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
     rangeStart=new Date(rangeEnd);
   }
   renderTable(results,"#8A2BE2","LEGENDS");
 }
-
-/* ---------- ACORN MODE ---------- */
-function calculateAcorn() {
+function calculateAcorn(){
   const rebateInput=document.getElementById("rebateDate").value.trim();
   const tier=parseInt(document.getElementById("tier").value);
   const purchasesRaw=document.getElementById("purchaseDates").value.trim();
-  if(!rebateInput||!purchasesRaw) return alert("Please enter all fields.");
-
+  if(!rebateInput||!purchasesRaw)return alert("Please enter all fields.");
   const rebateDate=parseLocalDate(rebateInput);
-  if(!rebateDate) return alert("Invalid rebate date format.");
+  if(!rebateDate)return alert("Invalid rebate date format.");
   const periodDays=tier===2?7:9;
-
   const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
   const lastPurchase=purchaseDates[purchaseDates.length-1];
-
-  let results=[];
-  let rangeStart=new Date(rebateDate);
+  let results=[], rangeStart=new Date(rebateDate);
   while(rangeStart<=lastPurchase){
-    let rangeEnd=new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-
+    let rangeEnd=new Date(rangeStart); rangeEnd.setDate(rangeEnd.getDate()+periodDays);
     const dayCounts={};
     for(let dt of purchaseDates){
       if(dt>=rangeStart && dt<rangeEnd){
-        let diff=dt - rebateDate;
-        let dayIndex=Math.floor(diff/(24*3600*1000));
-        let dayStart=new Date(rebateDate.getTime()+dayIndex*24*3600*1000);
-        let dayEnd=new Date(dayStart.getTime()+24*3600*1000);
-
-        if(dt < dayEnd && dt < new Date(rebateDate.getTime()+(dayIndex+1)*24*3600*1000 - (24*60*60*1000 - (dt - dayStart)))) {
-          if(dt < dayEnd) dayIndex--;
-        }
+        let diff=dt-rebateDate; let dayIndex=Math.floor(diff/(24*3600*1000));
         if(dayIndex<0) dayIndex=0;
-
-        const dayLabel=new Date(rebateDate);
-        dayLabel.setDate(rebateDate.getDate()+dayIndex);
+        const dayLabel=new Date(rebateDate); dayLabel.setDate(rebateDate.getDate()+dayIndex);
         const label=`${dayLabel.getFullYear()}-${String(dayLabel.getMonth()+1).padStart(2,'0')}-${String(dayLabel.getDate()).padStart(2,'0')}`;
         dayCounts[label]=1;
       }
     }
-
     results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
     rangeStart=new Date(rangeEnd);
   }
   renderTable(results,"#FFD700","ACORN");
 }
-
-/* ---------- RENDER ---------- */
-function renderTable(results, color, mode){
+function renderTable(results,color,mode){
   document.getElementById("modeLabel").innerHTML=`<span style="color:${color}">Results — ${mode} Mode</span>`;
   let html='<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
   results.forEach(r=>{
     const highlight=r.totalPurchases>0?'valid-range':'';
-    html+=`<tr class="${highlight}">
-      <td>${format24h(r.start)}</td>
-      <td>${format24h(r.end)}</td>
-      <td>${r.uniqueDays.join('<br>')||'-'}</td>
-      <td>${r.totalPurchases}</td>
-    </tr>`;
+    html+=`<tr class="${highlight}"><td>${format24h(r.start)}</td><td>${format24h(r.end)}</td><td>${r.uniqueDays.join('<br>')||'-'}</td><td>${r.totalPurchases}</td></tr>`;
   });
   html+='</table>';
   document.getElementById("result").innerHTML=html;
-  const ths=document.querySelectorAll("#result th");
-  ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
+  document.querySelectorAll("#result th").forEach(th=>{th.style.backgroundColor=color; th.style.color='white';});
 }
-</script>
 
-<!-- ⭐ Signature added here -->
-<p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">
-  — by: Paul Angelo P
-</p>
-
-</body>
-</html>
+/* ---------- Subscription Analyzer JS ---------- */
+const PACKS = {7.00:{name:"Sub Pack 07",sc:0.50,gc:2000},30.00:{name:"Sub Pack 30",sc:2.00,gc:10000},90.00:{name:"Sub Pack 90",sc:5.50,gc:40000}};
+function parsePurchasesSub(text){ const lines=text.trim().split('\n').map(l=>l.trim()).filter(l=>l); const purchases=[]; for(let i=0;i<lines.length;i++){ if(lines[i].toLowerCase().includes("sub_pack")){ const prev=i>0?lines[i-1]:null; if(!prev) continue; const ts=new Date(prev.split("\t")[0]); const nextLine=(i+1)<lines.length?lines[i+1]:lines[i]; const amtMatch=nextLine.match(/\d+(\.\d+)?/); if(!amtMatch) continue; const amt=parseFloat(amtMatch[0]); if(PACKS[amt]) purchases.push({purchase_ts:ts,pack_amount:amt,pack_name:PACKS[amt].name}); } } return purchases; }
+function parseClaimsSub(text){ const lines=text.trim().split('\n').map(l=>l.trim()).filter(l=>l); const claims=[]; for(let i=0;i<lines.length;i+=3){ const line1=lines[i].split(/\s+/); if(line1.length<2) continue; const sc=parseFloat(line1[0]); const gc=parseFloat(line1[1]); const line3=lines[i+2]||''; const dateMatch=line3.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/); if(!dateMatch) continue; const ts=new Date(dateMatch[0]); let pack_amount=null; for(let amt in PACKS){ if(PACKS[amt].sc===sc && PACKS[amt].gc===gc){ pack_amount=parseFloat(amt); break; } } if(pack_amount) claims.push({pack_amount,claim_ts:ts}); } return claims; }
+function computeDayRangesSub(purchase_ts,totalDays){ const ranges=[]; let start=new Date(purchase_ts); for(let d=1;d<=totalDays;d++){ let end=new Date(start); if(d===1){ if(start.getHours()>=8){end.setDate(end.getDate()+1);} end.setHours(8,0,0,0);} else{start=new Date(ranges[ranges.length-1].end); end=new Date(start); end.setDate(end.getDate()+1); end.setHours(8,0,0,0);} ranges.push({day:d,start:new Date(start),end:new Date(end)}); start=end;} return ranges; }
+function formatDateSub(date){ const pad=n=>n.toString().padStart(2,"0"); return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`; }
+function formatDateOnlySub(date){ const pad=n=>n.toString().padStart(2,"0"); return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`; }
+function createTableSub(interval,totalDays,claims){
+  const tableBox=document.createElement("div"); tableBox.className="table-box"; const table=document.createElement("table");
+  let row1=table.insertRow(); let c1=row1.insertCell(); c1.colSpan=4; c1.className="header-title";
+  if(interval.pack_amount===7)c1.classList.add("sub7"); else if(interval.pack_amount===30)c1.classList.add("sub30"); else if(interval.pack_amount===90)c1.classList.add("sub90");
+  c1.innerText=interval.pack_name;
