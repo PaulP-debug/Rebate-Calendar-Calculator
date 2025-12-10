@@ -3,24 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rebate & Subscription Analyzer</title>
+<title>Combined Tools: Rebate & Subscription Analyzer</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
   input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
-  textarea { height: 150px; }
+  textarea { height: 80px; }
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
   .valid-range { background-color: #c6efce; }
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
-  #loginContainer { text-align:center; margin-top:100px; }
-
-  /* Subscription Analyzer styles */
-  .container { display: flex; gap: 20px; }
-  .left-box { flex: 1; }
-  .right-box { flex: 1; border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: auto; background: #f9f9f9; }
+  .container { display: flex; gap: 20px; margin-top: 20px; }
+  .left-box, .right-box { flex: 1; }
+  .right-box { border: 1px solid #ccc; padding: 10px; max-height: 300px; overflow-y: auto; background: #f9f9f9; }
   .tables-container { display: flex; gap: 20px; flex-wrap: wrap; }
   .table-box { display: inline-block; vertical-align: top; }
+  table { border-collapse: collapse; table-layout: fixed; white-space: nowrap; font-size: 14px; margin-bottom: 20px; }
+  th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; }
   th { background: #f0f0f0; font-weight: bold; }
   .header-title { font-size: 16px; text-align: center; }
   .header-title.sub7 { background: #cce5ff; }
@@ -34,64 +33,71 @@
   .summary-sub7 { background: #cce5ff; }
   .summary-sub30 { background: #d4edda; }
   .summary-sub90 { background: #fff3cd; }
+  #appContainer > div { margin-top: 30px; }
 </style>
 </head>
 <body>
 
 <!-- 🔐 LOGIN SECTION -->
-<div id="loginContainer">
+<div id="loginContainer" style="text-align:center; margin-top:100px;">
   <h2>Login</h2>
-  <p>Please enter your credentials to access the tool.</p>
+  <p>Please enter your credentials to access the tools.</p>
   <input type="text" id="username" placeholder="Username">
   <input type="password" id="password" placeholder="Password">
+  <br>
   <button onclick="login()">Login</button>
   <p id="loginMessage" style="color:red;"></p>
 </div>
 
 <!-- 🔧 MAIN APP CONTENT -->
 <div id="appContainer" style="display:none;">
-  <!-- Rebate Calculator -->
-  <h2>Rebate Calendar Calculator</h2>
-  <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-  <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
 
-  <label for="tier">2. Tier</label>
-  <select id="tier">
-    <option value="2">Tier 2 (7 days)</option>
-    <option value="3">Tier 3 (9 days)</option>
-  </select>
+  <button onclick="logout()" style="background-color:#f44336; color:white; margin-bottom:20px;">Logout</button>
 
-  <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
-  <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
+  <!-- REBATE CALCULATOR -->
+  <div>
+    <h2>Rebate Calendar Calculator</h2>
+    <label>1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
+    <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
 
-  <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
-  <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
+    <label>2. Tier</label>
+    <select id="tier">
+      <option value="2">Tier 2 (7 days)</option>
+      <option value="3">Tier 3 (9 days)</option>
+    </select>
 
-  <h3>4. Result</h3>
-  <div id="modeLabel"></div>
-  <div id="result"></div>
+    <label>3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
+    <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
 
-  <hr>
+    <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
+    <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
 
-  <!-- Subscription Analyzer -->
-  <h2>Subscription Analyzer</h2>
-  <div class="container">
-    <div class="left-box">
-      <label>Purchase Data (compressed, 7-column, tab-separated):</label>
-      <textarea id="purchaseData" class="purchase"></textarea>
-
-      <label>Claim Data (3-line per claim):</label>
-      <textarea id="claimData" class="claim"></textarea>
-
-      <button onclick="analyze()">Analyze</button>
-    </div>
-
-    <div class="right-box" id="summaryBox">
-      <div class="summary-title">Purchase Summary</div>
-      <div id="summaryContent">No data yet.</div>
-    </div>
+    <h3>Result</h3>
+    <div id="modeLabel"></div>
+    <div id="result"></div>
   </div>
-  <div id="results" class="tables-container"></div>
+
+  <!-- SUBSCRIPTION ANALYZER -->
+  <div>
+    <h2>Subscription Analyzer</h2>
+    <div class="container">
+      <div class="left-box">
+        <label>Purchase Data (compressed, 7-column, tab-separated):</label>
+        <textarea id="purchaseData" class="purchase"></textarea>
+
+        <label>Claim Data (3-line per claim):</label>
+        <textarea id="claimData" class="claim"></textarea>
+
+        <button onclick="analyze()">Analyze</button>
+      </div>
+      <div class="right-box" id="summaryBox">
+        <div class="summary-title">Purchase Summary</div>
+        <div id="summaryContent">No data yet.</div>
+      </div>
+    </div>
+    <div id="results" class="tables-container"></div>
+  </div>
+
 </div>
 
 <script>
@@ -99,98 +105,75 @@
 const USERNAME = "Legends_Admin";
 const PASSWORD = "LegendsAcorn2025!";
 
-function login(){
+function login() {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
   const msg = document.getElementById("loginMessage");
-  if(u===USERNAME && p===PASSWORD){
-    document.getElementById("loginContainer").style.display="none";
-    document.getElementById("appContainer").style.display="block";
-    localStorage.setItem("loggedIn","true");
-  } else msg.textContent="Invalid username or password.";
+  if(u === USERNAME && p === PASSWORD) {
+    document.getElementById("loginContainer").style.display = "none";
+    document.getElementById("appContainer").style.display = "block";
+    localStorage.setItem("loggedIn", "true");
+  } else msg.textContent = "Invalid username or password.";
 }
-
+function logout() {
+  localStorage.removeItem("loggedIn");
+  location.reload();
+}
 if(localStorage.getItem("loggedIn")==="true"){
   document.getElementById("loginContainer").style.display="none";
   document.getElementById("appContainer").style.display="block";
 }
 
-function logout(){ localStorage.removeItem("loggedIn"); location.reload(); }
-
 /* ---------- UTILITY ---------- */
-function parseLocalDate(str){ if(!str) return null; const t=str.trim().replace(" ","T"); const d=new Date(t); return isNaN(d)?null:d; }
-function format24h(dt){ const yyyy=dt.getFullYear(); const mm=String(dt.getMonth()+1).padStart(2,'0'); const dd=String(dt.getDate()).padStart(2,'0'); const hh=String(dt.getHours()).padStart(2,'0'); const mi=String(dt.getMinutes()).padStart(2,'0'); const ss=String(dt.getSeconds()).padStart(2,'0'); return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`; }
+function parseLocalDate(str){ const t=str.trim().replace(" ","T"); const d=new Date(t); return isNaN(d)?null:d; }
+function format24h(dt){ const yyyy=dt.getFullYear(), mm=String(dt.getMonth()+1).padStart(2,'0'), dd=String(dt.getDate()).padStart(2,'0'); const hh=String(dt.getHours()).padStart(2,'0'), mi=String(dt.getMinutes()).padStart(2,'0'), ss=String(dt.getSeconds()).padStart(2,'0'); return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`; }
 
-/* ---------- LEGENDS CALCULATION ---------- */
+/* ---------- REBATE CALCULATOR ---------- */
 function calculateLegends(){
-  const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
-  const purchasesRaw = document.getElementById("purchaseDates").value.trim();
-  if(!rebateInput||!purchasesRaw) return alert("Please enter all fields.");
-
-  let rebateDate = parseLocalDate(rebateInput);
-  if(!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays = tier===2?7:9;
-  const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  const lastPurchase = purchaseDates[purchaseDates.length-1];
-
+  const rebateInput=document.getElementById("rebateDate").value.trim();
+  const tier=parseInt(document.getElementById("tier").value);
+  const purchasesRaw=document.getElementById("purchaseDates").value.trim();
+  if(!rebateInput||!purchasesRaw)return alert("Please enter all fields.");
+  let rebateDate=parseLocalDate(rebateInput);
+  if(!rebateDate)return alert("Invalid rebate date format.");
+  const periodDays=tier===2?7:9;
+  const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
+  const lastPurchase=purchaseDates[purchaseDates.length-1];
   let results=[], rangeStart=new Date(rebateDate), firstEvent=true;
-
-  while(rangeStart <= lastPurchase){
-    let rangeEnd = new Date(rangeStart);
+  while(rangeStart<=lastPurchase){
+    let rangeEnd=new Date(rangeStart);
     if(firstEvent){
-      if(rangeStart.getHours()<8){ rangeEnd.setHours(8,0,0,0); }
-      else{ rangeEnd.setDate(rangeEnd.getDate()+1); rangeEnd.setHours(8,0,0,0);}
-      rangeEnd.setDate(rangeEnd.getDate()+(periodDays-1));
-      firstEvent=false;
-    } else{
-      rangeEnd = new Date(rangeStart); rangeEnd.setDate(rangeEnd.getDate()+periodDays); rangeEnd.setHours(8,0,0,0);
-    }
-
-    const dayCounts = {};
-    const cutoff = 8*3600;
-    for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
-        let adjusted = new Date(dt);
-        const sec = dt.getHours()*3600 + dt.getMinutes()*60 + dt.getSeconds();
-        if(sec<cutoff) adjusted.setDate(adjusted.getDate()-1);
-        const key = `${adjusted.getFullYear()}-${String(adjusted.getMonth()+1).padStart(2,'0')}-${String(adjusted.getDate()).padStart(2,'0')}`;
-        dayCounts[key]=1;
-      }
-    }
+      if(rangeStart.getHours()<8){ rangeEnd.setHours(8,0,0,0); } else { rangeEnd.setDate(rangeEnd.getDate()+1); rangeEnd.setHours(8,0,0,0);}
+      rangeEnd.setDate(rangeEnd.getDate()+(periodDays-1)); firstEvent=false;
+    } else { rangeEnd.setDate(rangeEnd.getDate()+periodDays); rangeEnd.setHours(8,0,0,0); }
+    const dayCounts={}; const cutoff=8*3600;
+    for(let dt of purchaseDates){ if(dt>=rangeStart&&dt<rangeEnd){ let adjusted=new Date(dt); const sec=dt.getHours()*3600+dt.getMinutes()*60+dt.getSeconds(); if(sec<cutoff) adjusted.setDate(adjusted.getDate()-1); const key=`${adjusted.getFullYear()}-${String(adjusted.getMonth()+1).padStart(2,'0')}-${String(adjusted.getDate()).padStart(2,'0')}`; dayCounts[key]=1; } }
     results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
-    rangeStart = new Date(rangeEnd);
+    rangeStart=new Date(rangeEnd);
   }
   renderTable(results,"#8A2BE2","LEGENDS");
 }
-
-/* ---------- ACORN CALCULATION ---------- */
 function calculateAcorn(){
-  const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
-  const purchasesRaw = document.getElementById("purchaseDates").value.trim();
-  if(!rebateInput||!purchasesRaw) return alert("Please enter all fields.");
-
+  const rebateInput=document.getElementById("rebateDate").value.trim();
+  const tier=parseInt(document.getElementById("tier").value);
+  const purchasesRaw=document.getElementById("purchaseDates").value.trim();
+  if(!rebateInput||!purchasesRaw)return alert("Please enter all fields.");
   const rebateDate=parseLocalDate(rebateInput);
-  if(!rebateDate) return alert("Invalid rebate date format.");
+  if(!rebateDate)return alert("Invalid rebate date format.");
   const periodDays=tier===2?7:9;
-
   const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
   const lastPurchase=purchaseDates[purchaseDates.length-1];
-
   let results=[], rangeStart=new Date(rebateDate);
-
   while(rangeStart<=lastPurchase){
-    let rangeEnd=new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-
+    let rangeEnd=new Date(rangeStart); rangeEnd.setDate(rangeEnd.getDate()+periodDays);
     const dayCounts={};
     for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
+      if(dt>=rangeStart&&dt<rangeEnd){
         let diff=dt-rebateDate;
         let dayIndex=Math.floor(diff/(24*3600*1000));
-        if(dayIndex<0) dayIndex=0;
-        const dayLabel=new Date(rebateDate); dayLabel.setDate(rebateDate.getDate()+dayIndex);
+        if(dayIndex<0)dayIndex=0;
+        const dayLabel=new Date(rebateDate);
+        dayLabel.setDate(rebateDate.getDate()+dayIndex);
         const label=`${dayLabel.getFullYear()}-${String(dayLabel.getMonth()+1).padStart(2,'0')}-${String(dayLabel.getDate()).padStart(2,'0')}`;
         dayCounts[label]=1;
       }
@@ -200,96 +183,28 @@ function calculateAcorn(){
   }
   renderTable(results,"#FFD700","ACORN");
 }
-
-/* ---------- RENDER TABLE ---------- */
 function renderTable(results,color,mode){
   document.getElementById("modeLabel").innerHTML=`<span style="color:${color}">Results — ${mode} Mode</span>`;
   let html='<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
-  results.forEach(r=>{
-    const highlight=r.totalPurchases>0?'valid-range':'';
-    html+=`<tr class="${highlight}">
-      <td>${format24h(r.start)}</td>
-      <td>${format24h(r.end)}</td>
-      <td>${r.uniqueDays.join('<br>')||'-'}</td>
-      <td>${r.totalPurchases}</td>
-    </tr>`;
-  });
+  results.forEach(r=>{ const highlight=r.totalPurchases>0?'valid-range':''; html+=`<tr class="${highlight}"><td>${format24h(r.start)}</td><td>${format24h(r.end)}</td><td>${r.uniqueDays.join('<br>')||'-'}</td><td>${r.totalPurchases}</td></tr>`; });
   html+='</table>';
   document.getElementById("result").innerHTML=html;
-  const ths=document.querySelectorAll("#result th");
-  ths.forEach(th=>{th.style.backgroundColor=color; th.style.color='white';});
+  const ths=document.querySelectorAll("#result th"); ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
 }
 
-/* ---------- Subscription Analyzer ---------- */
-const PACKS = {7.00:{name:"Sub Pack 07",sc:0.50,gc:2000},30.00:{name:"Sub Pack 30",sc:2.00,gc:10000},90.00:{name:"Sub Pack 90",sc:5.50,gc:40000}};
-
-function parsePurchases(text){
-  const lines=text.trim().split('\n').map(l=>l.trim()).filter(l=>l); const purchases=[];
-  for(let i=0;i<lines.length;i++){
-    if(lines[i].toLowerCase().includes("sub_pack")){
-      const prev=i>0?lines[i-1]:null; if(!prev) continue;
-      const ts=new Date(prev.split("\t")[0]);
-      const nextLine=(i+1)<lines.length?lines[i+1]:lines[i];
-      const amtMatch=nextLine.match(/\d+(\.\d+)?/); if(!amtMatch) continue;
-      const amt=parseFloat(amtMatch[0]); if(PACKS[amt]) purchases.push({purchase_ts:ts, pack_amount:amt, pack_name:PACKS[amt].name});
-    }
-  }
-  return purchases;
-}
-
-function parseClaims(text){
-  const lines=text.trim().split('\n').map(l=>l.trim()).filter(l=>l); const claims=[];
-  for(let i=0;i<lines.length;i+=3){
-    const line1=lines[i].split(/\s+/); if(line1.length<2) continue;
-    const sc=parseFloat(line1[0]); const gc=parseFloat(line1[1]);
-    const line3=lines[i+2]||''; const dateMatch=line3.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
-    if(!dateMatch) continue; const ts=new Date(dateMatch[0]);
-    let pack_amount=null; for(let amt in PACKS){if(PACKS[amt].sc===sc && PACKS[amt].gc===gc){pack_amount=parseFloat(amt); break;}}
-    if(pack_amount) claims.push({pack_amount, claim_ts:ts});
-  }
-  return claims;
-}
-
+/* ---------- SUBSCRIPTION ANALYZER ---------- */
+const PACKS={7.00:{name:"Sub Pack 07",sc:0.5,gc:2000},30.00:{name:"Sub Pack 30",sc:2.0,gc:10000},90.00:{name:"Sub Pack 90",sc:5.5,gc:40000}};
+function parsePurchases(text){ const lines=text.trim().split('\n').map(l=>l.trim()).filter(l=>l); const purchases=[]; for(let i=0;i<lines.length;i++){ if(lines[i].toLowerCase().includes("sub_pack")){ const prev=i>0?lines[i-1]:null; if(!prev)continue; const ts=new Date(prev.split("\t")[0]); const nextLine=(i+1)<lines.length?lines[i+1]:lines[i]; const amtMatch=nextLine.match(/\d+(\.\d+)?/); if(!amtMatch)continue; const amt=parseFloat(amtMatch[0]); if(PACKS[amt])purchases.push({purchase_ts:ts,pack_amount:amt,pack_name:PACKS[amt].name}); } } return purchases; }
+function parseClaims(text){ const lines=text.trim().split('\n').map(l=>l.trim()).filter(l=>l); const claims=[]; for(let i=0;i<lines.length;i+=3){ const line1=lines[i].split(/\s+/); if(line1.length<2)continue; const sc=parseFloat(line1[0]), gc=parseFloat(line1[1]); const line3=lines[i+2]||''; const dateMatch=line3.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/); if(!dateMatch)continue; const ts=new Date(dateMatch[0]); let pack_amount=null; for(let amt in PACKS){ if(PACKS[amt].sc===sc&&PACKS[amt].gc===gc){ pack_amount=parseFloat(amt); break; } } if(pack_amount)claims.push({pack_amount,claim_ts:ts}); } return claims; }
 function formatDate(date){ const pad=n=>n.toString().padStart(2,"0"); return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`; }
 function formatDateOnly(date){ const pad=n=>n.toString().padStart(2,"0"); return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`; }
+function computeDayRanges(purchase_ts,totalDays){ const ranges=[]; let start=new Date(purchase_ts); for(let d=1;d<=totalDays;d++){ let end=new Date(start); if(d===1){ if(start.getHours()>=8){ end.setDate(end.getDate()+1);} end.setHours(8,0,0,0);} else{ start=new Date(ranges[ranges.length-1].end); end=new Date(start); end.setDate(end.getDate()+1); end.setHours(8,0,0,0);} ranges.push({day:d,start:new Date(start),end:new Date(end)}); start=end;} return ranges; }
+function createTable(interval,totalDays,claims){ const tableBox=document.createElement("div"); tableBox.className="table-box"; const table=document.createElement("table"); let row1=table.insertRow(); let c1=row1.insertCell(); c1.colSpan=4; c1.className="header-title"; if(interval.pack_amount===7)c1.classList.add("sub7"); else if(interval.pack_amount===30)c1.classList.add("sub30"); else if(interval.pack_amount===90)c1.classList.add("sub90"); c1.innerText=interval.pack_name; let row2=table.insertRow(); let c2a=row2.insertCell(); c2a.innerText=`Total: ${totalDays} days`; c2a.className="total-days"; let c2b=row2.insertCell(); c2b.colSpan=3; const lastRange=computeDayRanges(interval.purchase_ts,totalDays); c2b.innerText=`Start: ${formatDate(lastRange[0].start)} | End: ${formatDate(lastRange[lastRange.length-1].end)}`; let row3=table.insertRow(); ["Day","Day Range","Status","Server Time"].forEach(h=>{let th=row3.insertCell(); th.innerText=h;}); lastRange.forEach(r=>{ let row=table.insertRow(); row.insertCell().innerText="Day "+r.day; row.insertCell().innerText=`${formatDate(r.start)} → ${formatDate(r.end)}`; let statusCell=row.insertCell(); let pstCell=row.insertCell(); let matchedClaim=claims.find(c=>c.pack_amount===interval.pack_amount && c.claim_ts>=r.start && c.claim_ts<=r.end); if(matchedClaim){ statusCell.innerText=`Claimed: ${formatDate(matchedClaim.claim_ts)}`; statusCell.className="claimed"; let pstDate=new Date(matchedClaim.claim_ts); pstDate.setHours(pstDate.getHours()-8); pstCell.innerText=formatDate(pstDate);} else{ statusCell.innerText="Missed"; statusCell.className="missed"; pstCell.innerText="";} }); tableBox.appendChild(table); return tableBox; }
+function updateSummary(purchases){ const summaryDiv=document.getElementById("summaryContent"); summaryDiv.innerHTML=""; for(let amt in PACKS){ const packName=PACKS[amt].name; let packPurchases=purchases.filter(p=>p.pack_amount===parseFloat(amt)); const dates=packPurchases.map(p=>formatDateOnly(p.purchase_ts)); let itemDiv=document.createElement("div"); itemDiv.className="summary-item"; if(parseFloat(amt)===7)itemDiv.classList.add("summary-sub7"); else if(parseFloat(amt)===30)itemDiv.classList.add("summary-sub30"); else if(parseFloat(amt)===90)itemDiv.classList.add("summary-sub90"); itemDiv.innerText=dates.length===0?`${packName}: 0 purchases → -`:`${packName}: ${dates.length} purchase${dates.length>1?'s':''} → ${dates.join(', ')}`; summaryDiv.appendChild(itemDiv);} }
+function analyze(){ const purchases=parsePurchases(document.getElementById("purchaseData").value); const claims=parseClaims(document.getElementById("claimData").value); const resultsDiv=document.getElementById("results"); resultsDiv.innerHTML=""; updateSummary(purchases); for(let amt in PACKS){ const packName=PACKS[amt].name; let packPurchases=purchases.filter(p=>p.pack_amount===parseFloat(amt)); if(packPurchases.length===0){ const emptyInterval={pack_name:packName,pack_amount:parseFloat(amt),purchase_ts:new Date()}; resultsDiv.appendChild(createTable(emptyInterval,0,claims)); continue;} let intervals=[], currentEnd=null; packPurchases.sort((a,b)=>a.purchase_ts-b.purchase_ts).forEach(p=>{ let start=p.purchase_ts; if(currentEnd&&start<=currentEnd)start=currentEnd; intervals.push({pack_name:packName,pack_amount:parseFloat(amt),purchase_ts:start}); currentEnd=new Date(start.getTime()+7*24*3600*1000);}); const totalDays=intervals.length*7; resultsDiv.appendChild(createTable(intervals[0],totalDays,claims)); }
+</script>
 
-function computeDayRanges(purchase_ts,totalDays){
-  const ranges=[]; let start=new Date(purchase_ts);
-  for(let d=1;d<=totalDays;d++){
-    let end=new Date(start);
-    if(d===1){ if(start.getHours()>=8){end.setDate(end.getDate()+1);} end.setHours(8,0,0,0);}
-    else{ start=new Date(ranges[ranges.length-1].end); end=new Date(start); end.setDate(end.getDate()+1); end.setHours(8,0,0,0);}
-    ranges.push({day:d,start:new Date(start),end:new Date(end)}); start=end;
-  }
-  return ranges;
-}
+<p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">— by: Paul P</p>
 
-function createTable(interval,totalDays,claims){
-  const tableBox=document.createElement("div"); tableBox.className="table-box";
-  const table=document.createElement("table");
-  let row1=table.insertRow(); let c1=row1.insertCell(); c1.colSpan=4; c1.className="header-title";
-  if(interval.pack_amount===7)c1.classList.add("sub7"); else if(interval.pack_amount===30)c1.classList.add("sub30"); else if(interval.pack_amount===90)c1.classList.add("sub90");
-  c1.innerText=interval.pack_name;
-  let row2=table.insertRow(); let c2a=row2.insertCell(); c2a.innerText=`Total: ${totalDays} days`; c2a.className="total-days";
-  let c2b=row2.insertCell(); c2b.colSpan=3; const lastRange=computeDayRanges(interval.purchase_ts,totalDays);
-  c2b.innerText=`Start: ${formatDate(lastRange[0].start)} | End: ${formatDate(lastRange[lastRange.length-1].end)}`;
-  let row3=table.insertRow(); ["Day","Day Range","Status","Server Time"].forEach(h=>{let th=document.createElement("th"); th.innerText=h; row3.appendChild(th);});
-  lastRange.forEach(r=>{
-    let row=table.insertRow(); row.insertCell().innerText="Day "+r.day;
-    row.insertCell().innerText=`${formatDate(r.start)} → ${formatDate(r.end)}`;
-    let statusCell=row.insertCell(); let pstCell=row.insertCell();
-    let matchedClaim=claims.find(c=>c.pack_amount===interval.pack_amount && c.claim_ts>=r.start && c.claim_ts<=r.end);
-    if(matchedClaim){ const claimText=formatDate(matchedClaim.claim_ts); statusCell.innerText=`Claimed: ${claimText}`; statusCell.className="claimed";
-      let pstDate=new Date(matchedClaim.claim_ts); pstDate.setHours(pstDate.getHours()-8); pstCell.innerText=formatDate(pstDate);
-    } else {statusCell.innerText="Missed"; statusCell.className="missed"; pstCell.innerText="";}
-  });
-  tableBox.appendChild(table); return tableBox;
-}
-
-function updateSummary(purchases){
-  const summaryDiv=document.getElementById("summaryContent"); summaryDiv.innerHTML="";
-  for(let amt in PACKS){
-    const packName=PACKS[amt].name;
-    let packPurchases=purchases.filter(p=>p.pack_amount===parseFloat(amt));
-    const dates=packPurchases.map(p=>formatDateOnly(p.purchase_ts));
-    let
+</body>
+</html>
