@@ -6,7 +6,7 @@
 <title>Rebate Calendar Calculator</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
+  input, select, textarea { display: block; margin-bottom: 10px; width: 100%; padding: 5px; }
   textarea { height: 150px; }
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
@@ -14,11 +14,13 @@
   .valid-range { background-color: #c6efce; }
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
   #loginContainer { text-align:center; margin-top:100px; }
+  .flex-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .flex-child { flex: 1; min-width: 350px; }
 </style>
 </head>
 <body>
 
-<!-- 🔐 LOGIN SECTION -->
+<!-- LOGIN SECTION -->
 <div id="loginContainer">
   <h2>Login</h2>
   <p>Please enter your credentials to access the calculator.</p>
@@ -29,50 +31,47 @@
   <p id="loginMessage" style="color:red;"></p>
 </div>
 
-<!-- 🔧 MAIN APP CONTENT -->
+<!-- MAIN APP CONTENT -->
 <div id="appContainer" style="display:none;">
 
   <h2>Rebate Calendar Calculator</h2>
 
-  <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-  <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
+  <div class="flex-container">
+    <!-- Left: Rebate Calculator -->
+    <div class="flex-child">
+      <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
+      <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
 
-  <label for="tier">2. Tier</label>
-  <select id="tier">
-    <option value="2">Tier 2 (7 days)</option>
-    <option value="3">Tier 3 (9 days)</option>
-  </select>
+      <label for="tier">2. Tier</label>
+      <select id="tier">
+        <option value="2">Tier 2 (7 days)</option>
+        <option value="3">Tier 3 (9 days)</option>
+      </select>
 
-  <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
-  <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
+      <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
+      <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
 
-  <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
-  <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
-  <button onclick="logout()" style="background-color:#f44336; color:white;">Logout</button>
+      <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
+      <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
+      <button onclick="logout()" style="background-color:#f44336; color:white;">Logout</button>
 
-  <!-- 4 + 5. Result and Timezone side by side -->
-  <div style="display:flex; gap:20px; align-items:flex-start; margin-top:20px;">
-    
-    <!-- Existing result table -->
-    <div id="resultContainer" style="flex:1;">
       <h3>4. Result</h3>
       <div id="modeLabel"></div>
       <div id="result"></div>
     </div>
 
-    <!-- NEW timezone conversion table -->
-    <div id="timezoneContainer" style="flex:1;">
+    <!-- Right: Timezone Converter -->
+    <div class="flex-child">
       <h3>5. Timezone Converter (Input UTC)</h3>
-      <label for="timezoneInput">Enter date (YYYY-MM-DD HH:MM:SS)</label>
+      <label for="timezoneInput">Backend Time (YYYY-MM-DD HH:MM:SS)</label>
       <input type="text" id="timezoneInput" placeholder="2025-11-14 01:12:41" oninput="updateTimezones()">
       <div id="timezoneResult"></div>
     </div>
-
   </div>
 </div>
 
 <script>
-/* ---------- SIMPLE LOGIN ---------- */
+/* LOGIN */
 const USERNAME = "LEGENDS_ADMIN";
 const PASSWORD = "AcornLegends2025";
 
@@ -96,14 +95,13 @@ function logout() {
   location.reload();
 }
 
-/* ---------- Utility ---------- */
+/* UTILITY */
 function parseLocalDate(str) {
   if(!str) return null;
   const t = str.trim().replace(" ","T");
   const d = new Date(t);
   return isNaN(d) ? null : d;
 }
-
 function format24h(dt) {
   const yyyy = dt.getFullYear();
   const mm = String(dt.getMonth()+1).padStart(2,'0');
@@ -114,13 +112,12 @@ function format24h(dt) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
 }
 
-/* ---------- LEGENDS MODE ---------- */
+/* LEGENDS */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
   const purchasesRaw = document.getElementById("purchaseDates").value.trim();
   if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
-
   let rebateDate = parseLocalDate(rebateInput);
   if (!rebateDate) return alert("Invalid rebate date format.");
   const periodDays = tier === 2 ? 7 : 9;
@@ -165,17 +162,15 @@ function calculateLegends() {
   renderTable(results,"#8A2BE2","LEGENDS");
 }
 
-/* ---------- ACORN MODE ---------- */
+/* ACORN */
 function calculateAcorn() {
   const rebateInput=document.getElementById("rebateDate").value.trim();
   const tier=parseInt(document.getElementById("tier").value);
   const purchasesRaw=document.getElementById("purchaseDates").value.trim();
   if(!rebateInput||!purchasesRaw) return alert("Please enter all fields.");
-
   const rebateDate=parseLocalDate(rebateInput);
   if(!rebateDate) return alert("Invalid rebate date format.");
   const periodDays=tier===2?7:9;
-
   const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
   const lastPurchase=purchaseDates[purchaseDates.length-1];
 
@@ -184,34 +179,24 @@ function calculateAcorn() {
   while(rangeStart<=lastPurchase){
     let rangeEnd=new Date(rangeStart);
     rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-
     const dayCounts={};
     for(let dt of purchaseDates){
       if(dt>=rangeStart && dt<rangeEnd){
         let diff=dt - rebateDate;
         let dayIndex=Math.floor(diff/(24*3600*1000));
-        let dayStart=new Date(rebateDate.getTime()+dayIndex*24*3600*1000);
-        let dayEnd=new Date(dayStart.getTime()+24*3600*1000);
-
-        if(dt < dayEnd && dt < new Date(rebateDate.getTime()+(dayIndex+1)*24*3600*1000 - (24*60*60*1000 - (dt - dayStart)))) {
-          if(dt < dayEnd) dayIndex--;
-        }
-        if(dayIndex<0) dayIndex=0;
-
-        const dayLabel=new Date(rebateDate);
+        let dayLabel=new Date(rebateDate);
         dayLabel.setDate(rebateDate.getDate()+dayIndex);
         const label=`${dayLabel.getFullYear()}-${String(dayLabel.getMonth()+1).padStart(2,'0')}-${String(dayLabel.getDate()).padStart(2,'0')}`;
         dayCounts[label]=1;
       }
     }
-
     results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
     rangeStart=new Date(rangeEnd);
   }
   renderTable(results,"#FFD700","ACORN");
 }
 
-/* ---------- RENDER ---------- */
+/* RENDER TABLE */
 function renderTable(results, color, mode){
   document.getElementById("modeLabel").innerHTML=`<span style="color:${color}">Results — ${mode} Mode</span>`;
   let html='<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
@@ -230,7 +215,7 @@ function renderTable(results, color, mode){
   ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
 }
 
-/* ---------- TIMEZONE CONVERTER ---------- */
+/* TIMEZONE CONVERTER */
 function updateTimezones() {
   const input = document.getElementById("timezoneInput").value.trim();
   const dt = parseLocalDate(input); // UTC input
@@ -239,26 +224,25 @@ function updateTimezones() {
     return;
   }
 
-  // Offsets relative to UTC
-  const offsets = {
-    PST: -8,
-    MST: -7,
-    CST: -6,
-    EST: -5
+  const zones = {
+    "PST (Server Time)": { offset: -8, color: '#cce5ff' }, // blue
+    "MST": { offset: -7, color: '#d4edda' },               // green
+    "CST": { offset: -6, color: '#fff3cd' },               // yellow
+    "EST": { offset: -5, color: '#ffe5b4' }                // orange
   };
 
   let html = '<table style="border-collapse:collapse; width:100%;">';
   html += '<tr style="background:#333;color:white;"><th>Timezone</th><th>Date & Time</th></tr>';
 
-  for (const tz in offsets) {
-    const localDate = new Date(dt.getTime() + offsets[tz] * 3600 * 1000);
+  for (const tz in zones) {
+    const localDate = new Date(dt.getTime() + zones[tz].offset * 3600 * 1000);
     const yyyy = localDate.getFullYear();
-    const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(localDate.getDate()).padStart(2, '0');
-    const hh = String(localDate.getHours()).padStart(2, '0');
-    const mi = String(localDate.getMinutes()).padStart(2, '0');
+    const mm = String(localDate.getMonth()+1).padStart(2,'0');
+    const dd = String(localDate.getDate()).padStart(2,'0');
+    const hh = String(localDate.getHours()).padStart(2,'0');
+    const mi = String(localDate.getMinutes()).padStart(2,'0');
 
-    html += `<tr>
+    html += `<tr style="background:${zones[tz].color};">
       <td>${tz}</td>
       <td>${yyyy}-${mm}-${dd} ${hh}:${mi}</td>
     </tr>`;
@@ -269,7 +253,6 @@ function updateTimezones() {
 }
 </script>
 
-<!-- ⭐ Signature -->
 <p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">
   — by: Paul P
 </p>
