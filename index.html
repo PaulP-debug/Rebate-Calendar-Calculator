@@ -63,7 +63,7 @@
     <!-- NEW timezone conversion table -->
     <div id="timezoneContainer" style="flex:1;">
       <h3>5. Timezone Converter (Input UTC)</h3>
-      <label for="timezoneInput">Backend Time (YYYY-MM-DD HH:MM:SS)</label>
+      <label for="timezoneInput">Enter date (YYYY-MM-DD HH:MM:SS)</label>
       <input type="text" id="timezoneInput" placeholder="2025-11-14 01:12:41" oninput="updateTimezones()">
       <div id="timezoneResult"></div>
     </div>
@@ -230,7 +230,7 @@ function renderTable(results, color, mode){
   ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
 }
 
-/* ---------- TIMEZONE CONVERTER WITH HIGHLIGHTS ---------- */
+/* ---------- TIMEZONE CONVERTER ---------- */
 function updateTimezones() {
   const input = document.getElementById("timezoneInput").value.trim();
   const dt = parseLocalDate(input); // UTC input
@@ -239,25 +239,26 @@ function updateTimezones() {
     return;
   }
 
-  const zones = {
-    PST: { offset: -8, color: '#cce5ff' },   // light blue
-    MST: { offset: -7, color: '#d4edda' },   // light green
-    CST: { offset: -6, color: '#fff3cd' },   // light yellow
-    EST: { offset: -5, color: '#ffe5b4' }    // light orange
+  // Offsets relative to UTC
+  const offsets = {
+    PST: -8,
+    MST: -7,
+    CST: -6,
+    EST: -5
   };
 
   let html = '<table style="border-collapse:collapse; width:100%;">';
   html += '<tr style="background:#333;color:white;"><th>Timezone</th><th>Date & Time</th></tr>';
 
-  for (const tz in zones) {
-    const localDate = new Date(dt.getTime() + zones[tz].offset * 3600 * 1000);
+  for (const tz in offsets) {
+    const localDate = new Date(dt.getTime() + offsets[tz] * 3600 * 1000);
     const yyyy = localDate.getFullYear();
     const mm = String(localDate.getMonth() + 1).padStart(2, '0');
     const dd = String(localDate.getDate()).padStart(2, '0');
     const hh = String(localDate.getHours()).padStart(2, '0');
     const mi = String(localDate.getMinutes()).padStart(2, '0');
 
-    html += `<tr style="background:${zones[tz].color};">
+    html += `<tr>
       <td>${tz}</td>
       <td>${yyyy}-${mm}-${dd} ${hh}:${mi}</td>
     </tr>`;
