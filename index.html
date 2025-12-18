@@ -6,17 +6,27 @@
 <title>Rebate Calendar Calculator</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  input, select, textarea { display: block; margin-bottom: 10px; padding: 5px; font-size: 14px; }
-  textarea { height: 120px; width: 280px; resize: vertical; }
-  input[type="text"], select { width: 220px; }
+  
+  /* Input boxes: slightly wider for comfortable typing */
+  input[type="text"], select { width: 280px; display:block; margin-bottom:10px; padding:6px; font-size:14px; }
+  textarea { width: 300px; height: 140px; padding:6px; font-size:14px; resize:vertical; display:block; margin-bottom:10px; }
+  
   button { padding: 8px 16px; font-size: 14px; border-radius: 4px; border: none; margin-right: 5px; cursor: pointer; }
+  
+  /* Table styling */
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 6px; text-align: left; font-size: 13px; }
   .valid-range { background-color: #c6efce; }
+
   #modeLabel { font-size: 16px; font-weight: bold; margin-top: 20px; }
   #loginContainer { text-align:center; margin-top:100px; }
+
+  /* Flex layout for side-by-side */
   .flex-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
   .flex-child { flex: 1; min-width: 300px; max-width: 350px; }
+
+  /* Ensure result table stays full width */
+  #result table { width: 100% !important; }
 </style>
 </head>
 <body>
@@ -88,6 +98,7 @@ if (localStorage.getItem("loggedIn") === "true") {
   document.getElementById("loginContainer").style.display = "none";
   document.getElementById("appContainer").style.display = "block";
 }
+
 function logout() {
   localStorage.removeItem("loggedIn");
   location.reload();
@@ -110,7 +121,7 @@ function format24h(dt) {
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
 }
 
-/* LEGENDS MODE */
+/* LEGENDS */
 function calculateLegends() {
   const rebateInput = document.getElementById("rebateDate").value.trim();
   const tier = parseInt(document.getElementById("tier").value);
@@ -161,7 +172,7 @@ function calculateLegends() {
   renderTable(results,"#8A2BE2","LEGENDS");
 }
 
-/* ACORN MODE */
+/* ACORN */
 function calculateAcorn() {
   const rebateInput=document.getElementById("rebateDate").value.trim();
   const tier=parseInt(document.getElementById("tier").value);
