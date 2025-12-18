@@ -50,9 +50,25 @@
   <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
   <button onclick="logout()" style="background-color:#f44336; color:white;">Logout</button>
 
-  <h3>4. Result</h3>
-  <div id="modeLabel"></div>
-  <div id="result"></div>
+  <!-- 4 + 5. Result and Timezone side by side -->
+  <div style="display:flex; gap:20px; align-items:flex-start; margin-top:20px;">
+    
+    <!-- Existing result table -->
+    <div id="resultContainer" style="flex:1;">
+      <h3>4. Result</h3>
+      <div id="modeLabel"></div>
+      <div id="result"></div>
+    </div>
+
+    <!-- NEW timezone conversion table -->
+    <div id="timezoneContainer" style="flex:1;">
+      <h3>5. Timezone Converter (Input UTC)</h3>
+      <label for="timezoneInput">Backend Time (YYYY-MM-DD HH:MM:SS)</label>
+      <input type="text" id="timezoneInput" placeholder="2025-11-14 01:12:41" oninput="updateTimezones()">
+      <div id="timezoneResult"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>
@@ -213,9 +229,46 @@ function renderTable(results, color, mode){
   const ths=document.querySelectorAll("#result th");
   ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
 }
+
+/* ---------- TIMEZONE CONVERTER WITH HIGHLIGHTS ---------- */
+function updateTimezones() {
+  const input = document.getElementById("timezoneInput").value.trim();
+  const dt = parseLocalDate(input); // UTC input
+  if (!dt) {
+    document.getElementById("timezoneResult").innerHTML = "<p style='color:red;'>Invalid date format.</p>";
+    return;
+  }
+
+  const zones = {
+    PST: { offset: -8, color: '#cce5ff' },   // light blue
+    MST: { offset: -7, color: '#d4edda' },   // light green
+    CST: { offset: -6, color: '#fff3cd' },   // light yellow
+    EST: { offset: -5, color: '#ffe5b4' }    // light orange
+  };
+
+  let html = '<table style="border-collapse:collapse; width:100%;">';
+  html += '<tr style="background:#333;color:white;"><th>Timezone</th><th>Date & Time</th></tr>';
+
+  for (const tz in zones) {
+    const localDate = new Date(dt.getTime() + zones[tz].offset * 3600 * 1000);
+    const yyyy = localDate.getFullYear();
+    const mm = String(localDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(localDate.getDate()).padStart(2, '0');
+    const hh = String(localDate.getHours()).padStart(2, '0');
+    const mi = String(localDate.getMinutes()).padStart(2, '0');
+
+    html += `<tr style="background:${zones[tz].color};">
+      <td>${tz}</td>
+      <td>${yyyy}-${mm}-${dd} ${hh}:${mi}</td>
+    </tr>`;
+  }
+
+  html += '</table>';
+  document.getElementById("timezoneResult").innerHTML = html;
+}
 </script>
 
-<!-- ⭐ Signature added here -->
+<!-- ⭐ Signature -->
 <p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">
   — by: Paul P
 </p>
