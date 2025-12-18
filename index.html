@@ -6,14 +6,13 @@
 <title>Rebate Calendar Calculator</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  
-  /* Input boxes: slightly wider for comfortable typing */
+
+  /* Input boxes slightly wider */
   input[type="text"], select { width: 280px; display:block; margin-bottom:10px; padding:6px; font-size:14px; }
   textarea { width: 300px; height: 140px; padding:6px; font-size:14px; resize:vertical; display:block; margin-bottom:10px; }
-  
+
   button { padding: 8px 16px; font-size: 14px; border-radius: 4px; border: none; margin-right: 5px; cursor: pointer; }
-  
-  /* Table styling */
+
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
   th, td { border: 1px solid #ccc; padding: 6px; text-align: left; font-size: 13px; }
   .valid-range { background-color: #c6efce; }
@@ -21,11 +20,21 @@
   #modeLabel { font-size: 16px; font-weight: bold; margin-top: 20px; }
   #loginContainer { text-align:center; margin-top:100px; }
 
-  /* Flex layout for side-by-side */
+  /* Flex layout */
   .flex-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-  .flex-child { flex: 1; min-width: 300px; max-width: 350px; }
 
-  /* Ensure result table stays full width */
+  .flex-child.inputs { 
+      min-width: 300px; 
+      max-width: 350px; 
+      flex: 1; 
+  }
+
+  .flex-child.timezones {
+      min-width: 220px; 
+      max-width: 250px; 
+  }
+
+  /* Keep Analyze table full width */
   #result table { width: 100% !important; }
 </style>
 </head>
@@ -34,10 +43,10 @@
 <div id="loginContainer">
   <h2>Login</h2>
   <p>Please enter your credentials to access the calculator.</p>
-  <input type="text" id="username" placeholder="Username" style="padding:8px; margin:5px;">
-  <input type="password" id="password" placeholder="Password" style="padding:8px; margin:5px;">
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
   <br>
-  <button onclick="login()" style="padding:8px 20px;">Login</button>
+  <button onclick="login()">Login</button>
   <p id="loginMessage" style="color:red;"></p>
 </div>
 
@@ -47,7 +56,7 @@
 
   <div class="flex-container">
     <!-- Left: Rebate Calculator -->
-    <div class="flex-child">
+    <div class="flex-child inputs">
       <label for="rebateDate">1. Rebate Date</label>
       <input type="text" id="rebateDate" placeholder="YYYY-MM-DD HH:MM:SS">
 
@@ -70,7 +79,7 @@
     </div>
 
     <!-- Right: Timezone Converter -->
-    <div class="flex-child">
+    <div class="flex-child timezones">
       <h3>5. Timezone Converter (Input UTC)</h3>
       <label for="timezoneInput">Backend Time</label>
       <input type="text" id="timezoneInput" placeholder="YYYY-MM-DD HH:MM:SS" oninput="updateTimezones()">
