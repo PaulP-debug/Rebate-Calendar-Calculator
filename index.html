@@ -2,277 +2,175 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rebate Calendar Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
+body { font-family: Arial, sans-serif; padding: 20px; }
 
-  /* Input boxes slightly wider */
-  input[type="text"], select { width: 280px; display:block; margin-bottom:10px; padding:6px; font-size:14px; }
-  textarea { width: 300px; height: 140px; padding:6px; font-size:14px; resize:vertical; display:block; margin-bottom:10px; }
+/* Compact input boxes */
+input[type="text"], select {
+  width: 260px;
+  padding: 6px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+textarea {
+  width: 280px;
+  height: 130px;
+  padding: 6px;
+  margin-bottom: 8px;
+}
 
-  button { padding: 8px 16px; font-size: 14px; border-radius: 4px; border: none; margin-right: 5px; cursor: pointer; }
+button {
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  margin-right: 5px;
+}
 
-  table { border-collapse: collapse; margin-top: 10px; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 6px; text-align: left; font-size: 13px; }
-  .valid-range { background-color: #c6efce; }
+/* Flex area (TOP ONLY) */
+.flex-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
 
-  #modeLabel { font-size: 16px; font-weight: bold; margin-top: 20px; }
-  #loginContainer { text-align:center; margin-top:100px; }
+.inputs {
+  width: 320px;
+}
 
-  /* Flex layout */
-  .flex-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.timezones {
+  width: 260px;
+}
 
-  .flex-child.inputs { 
-      min-width: 300px; 
-      max-width: 350px; 
-      flex: 1; 
-  }
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 10px;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  font-size: 13px;
+}
+.valid-range { background-color: #c6efce; }
 
-  .flex-child.timezones {
-      min-width: 220px; 
-      max-width: 250px; 
-  }
+/* Timezone colors */
+.pst { background:#cce5ff; }
+.mst { background:#d4edda; }
+.cst { background:#fff3cd; }
+.est { background:#ffe5b4; }
 
-  /* Keep Analyze table full width */
-  #result table { width: 100% !important; }
+/* Result section FULL WIDTH */
+#resultSection {
+  margin-top: 25px;
+}
+
+#loginContainer { text-align:center; margin-top:100px; }
 </style>
 </head>
+
 <body>
 
 <div id="loginContainer">
   <h2>Login</h2>
-  <p>Please enter your credentials to access the calculator.</p>
-  <input type="text" id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
-  <br>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password"><br>
   <button onclick="login()">Login</button>
   <p id="loginMessage" style="color:red;"></p>
 </div>
 
 <div id="appContainer" style="display:none;">
 
-  <h2>Rebate Calendar Calculator</h2>
+<h2>Rebate Calendar Calculator</h2>
 
-  <div class="flex-container">
-    <!-- Left: Rebate Calculator -->
-    <div class="flex-child inputs">
-      <label for="rebateDate">1. Rebate Date</label>
-      <input type="text" id="rebateDate" placeholder="YYYY-MM-DD HH:MM:SS">
+<!-- 🔹 TOP FLEX AREA ONLY -->
+<div class="flex-container">
 
-      <label for="tier">2. Tier</label>
-      <select id="tier">
-        <option value="2">Tier 2 (7 days)</option>
-        <option value="3">Tier 3 (9 days)</option>
-      </select>
+  <!-- LEFT: INPUTS -->
+  <div class="inputs">
+    <label>Rebate Date</label>
+    <input id="rebateDate" placeholder="YYYY-MM-DD HH:MM:SS">
 
-      <label for="purchaseDates">3. Purchase Dates</label>
-      <textarea id="purchaseDates" placeholder="YYYY-MM-DD HH:MM:SS"></textarea>
+    <label>Tier</label>
+    <select id="tier">
+      <option value="2">Tier 2 (7 days)</option>
+      <option value="3">Tier 3 (9 days)</option>
+    </select>
 
-      <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
-      <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
-      <button onclick="logout()" style="background-color:#f44336; color:white;">Logout</button>
+    <label>Purchase Dates</label>
+    <textarea id="purchaseDates"></textarea>
 
-      <h3>4. Result</h3>
-      <div id="modeLabel"></div>
-      <div id="result"></div>
-    </div>
-
-    <!-- Right: Timezone Converter -->
-    <div class="flex-child timezones">
-      <h3>5. Timezone Converter (Input UTC)</h3>
-      <label for="timezoneInput">Backend Time</label>
-      <input type="text" id="timezoneInput" placeholder="YYYY-MM-DD HH:MM:SS" oninput="updateTimezones()">
-      <div id="timezoneResult"></div>
-    </div>
+    <button onclick="calculateLegends()" style="background:#8A2BE2;color:white;">LEGENDS</button>
+    <button onclick="calculateAcorn()" style="background:#FFD700;">ACORN</button>
+    <button onclick="logout()" style="background:#f44336;color:white;">Logout</button>
   </div>
+
+  <!-- RIGHT: TIMEZONE -->
+  <div class="timezones">
+    <h3>Timezone Converter (UTC)</h3>
+    <label>Backend Time</label>
+    <input id="timezoneInput" placeholder="YYYY-MM-DD HH:MM:SS" oninput="updateTimezones()">
+    <div id="timezoneResult"></div>
+  </div>
+
+</div>
+
+<!-- 🔹 FULL WIDTH RESULT SECTION -->
+<div id="resultSection">
+  <h3 id="modeLabel"></h3>
+  <div id="result"></div>
+</div>
+
 </div>
 
 <script>
-const USERNAME = "LEGENDS_ADMIN";
-const PASSWORD = "AcornLegends2025";
+const USERNAME="LEGENDS_ADMIN", PASSWORD="AcornLegends2025";
 
-function login() {
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value.trim();
-  const msg = document.getElementById("loginMessage");
-  if (u === USERNAME && p === PASSWORD) {
-    document.getElementById("loginContainer").style.display = "none";
-    document.getElementById("appContainer").style.display = "block";
-    localStorage.setItem("loggedIn", "true");
-  } else msg.textContent = "Invalid username or password.";
+/* LOGIN */
+function login(){
+  if(username.value===USERNAME && password.value===PASSWORD){
+    loginContainer.style.display="none";
+    appContainer.style.display="block";
+    localStorage.loggedIn="true";
+  } else loginMessage.textContent="Invalid credentials";
+}
+if(localStorage.loggedIn==="true"){
+  loginContainer.style.display="none";
+  appContainer.style.display="block";
+}
+function logout(){ localStorage.clear(); location.reload(); }
+
+/* UTIL */
+function parseLocalDate(s){
+  const d=new Date(s.replace(" ","T"));
+  return isNaN(d)?null:d;
+}
+function fmt(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
 
-if (localStorage.getItem("loggedIn") === "true") {
-  document.getElementById("loginContainer").style.display = "none";
-  document.getElementById("appContainer").style.display = "block";
-}
+/* TIMEZONES */
+function updateTimezones(){
+  const dt=parseLocalDate(timezoneInput.value);
+  if(!dt){ timezoneResult.innerHTML=""; return; }
 
-function logout() {
-  localStorage.removeItem("loggedIn");
-  location.reload();
-}
-
-function parseLocalDate(str) {
-  if(!str) return null;
-  const t = str.trim().replace(" ","T");
-  const d = new Date(t);
-  return isNaN(d) ? null : d;
-}
-
-function format24h(dt) {
-  const yyyy = dt.getFullYear();
-  const mm = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
-  const hh = String(dt.getHours()).padStart(2,'0');
-  const mi = String(dt.getMinutes()).padStart(2,'0');
-  const ss = String(dt.getSeconds()).padStart(2,'0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-}
-
-/* LEGENDS */
-function calculateLegends() {
-  const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
-  const purchasesRaw = document.getElementById("purchaseDates").value.trim();
-  if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
-
-  let rebateDate = parseLocalDate(rebateInput);
-  if (!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays = tier === 2 ? 7 : 9;
-  const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  const lastPurchase = purchaseDates[purchaseDates.length-1];
-
-  let results = [];
-  let rangeStart = new Date(rebateDate);
-  let firstEvent = true;
-  while(rangeStart <= lastPurchase){
-    let rangeEnd;
-    if(firstEvent){
-      rangeEnd = new Date(rangeStart);
-      if(rangeStart.getHours()<8){
-        rangeEnd.setHours(8,0,0,0);
-      } else {
-        rangeEnd.setDate(rangeEnd.getDate()+1);
-        rangeEnd.setHours(8,0,0,0);
-      }
-      rangeEnd.setDate(rangeEnd.getDate()+(periodDays-1));
-      firstEvent=false;
-    } else {
-      rangeEnd = new Date(rangeStart);
-      rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-      rangeEnd.setHours(8,0,0,0);
-    }
-
-    const dayCounts={};
-    const cutoff=8*3600;
-    for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
-        let adjusted=new Date(dt);
-        const sec=dt.getHours()*3600+dt.getMinutes()*60+dt.getSeconds();
-        if(sec<cutoff) adjusted.setDate(adjusted.getDate()-1);
-        const key=`${adjusted.getFullYear()}-${String(adjusted.getMonth()+1).padStart(2,'0')}-${String(adjusted.getDate()).padStart(2,'0')}`;
-        dayCounts[key]=1;
-      }
-    }
-    results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
-    rangeStart=new Date(rangeEnd);
-  }
-  renderTable(results,"#8A2BE2","LEGENDS");
-}
-
-/* ACORN */
-function calculateAcorn() {
-  const rebateInput=document.getElementById("rebateDate").value.trim();
-  const tier=parseInt(document.getElementById("tier").value);
-  const purchasesRaw=document.getElementById("purchaseDates").value.trim();
-  if(!rebateInput||!purchasesRaw) return alert("Please enter all fields.");
-
-  const rebateDate=parseLocalDate(rebateInput);
-  if(!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays=tier===2?7:9;
-
-  const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  const lastPurchase=purchaseDates[purchaseDates.length-1];
-
-  let results=[];
-  let rangeStart=new Date(rebateDate);
-  while(rangeStart<=lastPurchase){
-    let rangeEnd=new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-    const dayCounts={};
-    for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
-        let diff=dt - rebateDate;
-        let dayIndex=Math.floor(diff/(24*3600*1000));
-        let dayLabel=new Date(rebateDate);
-        dayLabel.setDate(rebateDate.getDate()+dayIndex);
-        const label=`${dayLabel.getFullYear()}-${String(dayLabel.getMonth()+1).padStart(2,'0')}-${String(dayLabel.getDate()).padStart(2,'0')}`;
-        dayCounts[label]=1;
-      }
-    }
-    results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
-    rangeStart=new Date(rangeEnd);
-  }
-  renderTable(results,"#FFD700","ACORN");
-}
-
-function renderTable(results, color, mode){
-  document.getElementById("modeLabel").innerHTML=`<span style="color:${color}">Results — ${mode} Mode</span>`;
-  let html='<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
-  results.forEach(r=>{
-    const highlight=r.totalPurchases>0?'valid-range':'';
-    html+=`<tr class="${highlight}">
-      <td>${format24h(r.start)}</td>
-      <td>${format24h(r.end)}</td>
-      <td>${r.uniqueDays.join('<br>')||'-'}</td>
-      <td>${r.totalPurchases}</td>
-    </tr>`;
-  });
-  html+='</table>';
-  document.getElementById("result").innerHTML=html;
-  const ths=document.querySelectorAll("#result th");
-  ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
-}
-
-/* TIMEZONE CONVERTER */
-function updateTimezones() {
-  const input = document.getElementById("timezoneInput").value.trim();
-  const dt = parseLocalDate(input);
-  if (!dt) {
-    document.getElementById("timezoneResult").innerHTML = "<p style='color:red;'>Invalid date format.</p>";
-    return;
-  }
-
-  const zones = {
-    "PST (Server Time)": { offset: -8, color: '#cce5ff' },
-    "MST": { offset: -7, color: '#d4edda' },
-    "CST": { offset: -6, color: '#fff3cd' },
-    "EST": { offset: -5, color: '#ffe5b4' }
-  };
-
-  let html = '<table style="border-collapse:collapse; width:100%;">';
-  html += '<tr style="background:#333;color:white;"><th>Timezone</th><th>Date & Time</th></tr>';
-
-  for (const tz in zones) {
-    const localDate = new Date(dt.getTime() + zones[tz].offset * 3600 * 1000);
-    const yyyy = localDate.getFullYear();
-    const mm = String(localDate.getMonth()+1).padStart(2,'0');
-    const dd = String(localDate.getDate()).padStart(2,'0');
-    const hh = String(localDate.getHours()).padStart(2,'0');
-    const mi = String(localDate.getMinutes()).padStart(2,'0');
-
-    html += `<tr style="background:${zones[tz].color};">
-      <td>${tz}</td>
-      <td>${yyyy}-${mm}-${dd} ${hh}:${mi}</td>
-    </tr>`;
-  }
-
-  html += '</table>';
-  document.getElementById("timezoneResult").innerHTML = html;
+  timezoneResult.innerHTML=`
+  <table>
+    <tr><th>Timezone</th><th>Date</th></tr>
+    <tr class="pst"><td>PST (Server Time)</td><td>${fmt(new Date(dt-8*3600000)).slice(0,16)}</td></tr>
+    <tr class="mst"><td>MST</td><td>${fmt(new Date(dt-7*3600000)).slice(0,16)}</td></tr>
+    <tr class="cst"><td>CST</td><td>${fmt(new Date(dt-6*3600000)).slice(0,16)}</td></tr>
+    <tr class="est"><td>EST</td><td>${fmt(new Date(dt-5*3600000)).slice(0,16)}</td></tr>
+  </table>`;
 }
 </script>
 
-<p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">
-  — by: Paul P
-</p>
+<p style="text-align:right;opacity:.7;margin-top:40px;">— by: Paul P</p>
+
+</body>
+</html>
