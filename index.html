@@ -6,7 +6,7 @@
 <title>Rebate Calendar Calculator</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
-  input, select, textarea { display: block; margin-bottom: 10px; width: 100%; padding: 5px; }
+  input, select, textarea { display: block; margin-bottom: 10px; width: 300px; padding: 5px; }
   textarea { height: 150px; }
   button { padding: 10px 20px; font-size: 16px; border-radius: 4px; border: none; margin-right: 10px; cursor: pointer; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
@@ -14,248 +14,98 @@
   .valid-range { background-color: #c6efce; }
   #modeLabel { font-size: 18px; font-weight: bold; margin-top: 20px; }
   #loginContainer { text-align:center; margin-top:100px; }
-  .flex-container { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-  .flex-child { flex: 1; min-width: 350px; }
 </style>
 </head>
 <body>
 
-<!-- LOGIN SECTION -->
+<!-- LOGIN -->
 <div id="loginContainer">
   <h2>Login</h2>
-  <p>Please enter your credentials to access the calculator.</p>
-  <input type="text" id="username" placeholder="Username" style="padding:8px; margin:5px;">
-  <input type="password" id="password" placeholder="Password" style="padding:8px; margin:5px;">
-  <br>
-  <button onclick="login()" style="padding:8px 20px;">Login</button>
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
   <p id="loginMessage" style="color:red;"></p>
 </div>
 
-<!-- MAIN APP CONTENT -->
 <div id="appContainer" style="display:none;">
 
-  <h2>Rebate Calendar Calculator</h2>
+<h2>Rebate Calendar Calculator</h2>
 
-  <div class="flex-container">
-    <!-- Left: Rebate Calculator -->
-    <div class="flex-child">
-      <label for="rebateDate">1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
-      <input type="text" id="rebateDate" placeholder="2025-11-14 01:12:41">
+<label>1. Rebate Date (YYYY-MM-DD HH:MM:SS)</label>
+<input type="text" id="rebateDate">
 
-      <label for="tier">2. Tier</label>
-      <select id="tier">
-        <option value="2">Tier 2 (7 days)</option>
-        <option value="3">Tier 3 (9 days)</option>
-      </select>
+<label>2. Tier</label>
+<select id="tier">
+  <option value="2">Tier 2 (7 days)</option>
+  <option value="3">Tier 3 (9 days)</option>
+</select>
 
-      <label for="purchaseDates">3. Purchase Dates (one per line, YYYY-MM-DD HH:MM:SS)</label>
-      <textarea id="purchaseDates" placeholder="2025-11-14 01:12:41&#10;2025-11-14 09:00:00"></textarea>
+<!-- ✅ TIMEZONE CONVERTER -->
+<h3>3. Timezone Converter (Input UTC)</h3>
+<label>Backend Time (UTC)</label>
+<input type="text" id="timezoneInput" placeholder="YYYY-MM-DD HH:MM:SS" oninput="updateTimezones()">
+<div id="timezoneResult"></div>
 
-      <button onclick="calculateLegends()" style="background-color:#8A2BE2; color:white;">Calculate (LEGENDS)</button>
-      <button onclick="calculateAcorn()" style="background-color:#FFD700; color:black;">Calculate (ACORN)</button>
-      <button onclick="logout()" style="background-color:#f44336; color:white;">Logout</button>
+<label>4. Purchase Dates (one per line)</label>
+<textarea id="purchaseDates"></textarea>
 
-      <h3>4. Result</h3>
-      <div id="modeLabel"></div>
-      <div id="result"></div>
-    </div>
+<button onclick="calculateAcorn()" style="background:#FFFF00;color:black;">Calculate (ACORN + LEGENDS)</button>
+<button onclick="calculateLegends()" style="background:#8A2BE2;color:white;">Calculate (OLD_LEGENDS)</button>
+<button onclick="logout()" style="background:#f44336;color:white;">Logout</button>
 
-    <!-- Right: Timezone Converter -->
-    <div class="flex-child">
-      <h3>5. Timezone Converter (Input UTC)</h3>
-      <label for="timezoneInput">Backend Time (YYYY-MM-DD HH:MM:SS)</label>
-      <input type="text" id="timezoneInput" placeholder="2025-11-14 01:12:41" oninput="updateTimezones()">
-      <div id="timezoneResult"></div>
-    </div>
-  </div>
+<h3>5. Result</h3>
+<div id="modeLabel"></div>
+<div id="result"></div>
+
 </div>
 
 <script>
-/* LOGIN */
-const USERNAME = "LEGENDS_ADMIN";
-const PASSWORD = "AcornLegends2025";
+const USERNAME="LEGENDS_ADMIN", PASSWORD="AcornLegends2025";
 
-function login() {
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value.trim();
-  const msg = document.getElementById("loginMessage");
-  if (u === USERNAME && p === PASSWORD) {
-    document.getElementById("loginContainer").style.display = "none";
-    document.getElementById("appContainer").style.display = "block";
-    localStorage.setItem("loggedIn", "true");
-  } else msg.textContent = "Invalid username or password.";
+function login(){
+  if(username.value===USERNAME && password.value===PASSWORD){
+    loginContainer.style.display="none";
+    appContainer.style.display="block";
+    localStorage.setItem("loggedIn","true");
+  } else loginMessage.textContent="Invalid credentials.";
 }
+if(localStorage.getItem("loggedIn")==="true"){
+  loginContainer.style.display="none";
+  appContainer.style.display="block";
+}
+function logout(){localStorage.clear();location.reload();}
 
-if (localStorage.getItem("loggedIn") === "true") {
-  document.getElementById("loginContainer").style.display = "none";
-  document.getElementById("appContainer").style.display = "block";
-}
-function logout() {
-  localStorage.removeItem("loggedIn");
-  location.reload();
-}
-
-/* UTILITY */
-function parseLocalDate(str) {
+function parseLocalDate(str){
   if(!str) return null;
-  const t = str.trim().replace(" ","T");
-  const d = new Date(t);
-  return isNaN(d) ? null : d;
+  const d=new Date(str.replace(" ","T"));
+  return isNaN(d)?null:d;
 }
-function format24h(dt) {
-  const yyyy = dt.getFullYear();
-  const mm = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
-  const hh = String(dt.getHours()).padStart(2,'0');
-  const mi = String(dt.getMinutes()).padStart(2,'0');
-  const ss = String(dt.getSeconds()).padStart(2,'0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-}
-
-/* LEGENDS */
-function calculateLegends() {
-  const rebateInput = document.getElementById("rebateDate").value.trim();
-  const tier = parseInt(document.getElementById("tier").value);
-  const purchasesRaw = document.getElementById("purchaseDates").value.trim();
-  if (!rebateInput || !purchasesRaw) return alert("Please enter all fields.");
-  let rebateDate = parseLocalDate(rebateInput);
-  if (!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays = tier === 2 ? 7 : 9;
-  const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  const lastPurchase = purchaseDates[purchaseDates.length-1];
-
-  let results = [];
-  let rangeStart = new Date(rebateDate);
-  let firstEvent = true;
-  while(rangeStart <= lastPurchase){
-    let rangeEnd;
-    if(firstEvent){
-      rangeEnd = new Date(rangeStart);
-      if(rangeStart.getHours()<8){
-        rangeEnd.setHours(8,0,0,0);
-      } else {
-        rangeEnd.setDate(rangeEnd.getDate()+1);
-        rangeEnd.setHours(8,0,0,0);
-      }
-      rangeEnd.setDate(rangeEnd.getDate()+(periodDays-1));
-      firstEvent=false;
-    } else {
-      rangeEnd = new Date(rangeStart);
-      rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-      rangeEnd.setHours(8,0,0,0);
-    }
-
-    const dayCounts={};
-    const cutoff=8*3600;
-    for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
-        let adjusted=new Date(dt);
-        const sec=dt.getHours()*3600+dt.getMinutes()*60+dt.getSeconds();
-        if(sec<cutoff) adjusted.setDate(adjusted.getDate()-1);
-        const key=`${adjusted.getFullYear()}-${String(adjusted.getMonth()+1).padStart(2,'0')}-${String(adjusted.getDate()).padStart(2,'0')}`;
-        dayCounts[key]=1;
-      }
-    }
-    results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
-    rangeStart=new Date(rangeEnd);
-  }
-  renderTable(results,"#8A2BE2","LEGENDS");
-}
-
-/* ACORN */
-function calculateAcorn() {
-  const rebateInput=document.getElementById("rebateDate").value.trim();
-  const tier=parseInt(document.getElementById("tier").value);
-  const purchasesRaw=document.getElementById("purchaseDates").value.trim();
-  if(!rebateInput||!purchasesRaw) return alert("Please enter all fields.");
-  const rebateDate=parseLocalDate(rebateInput);
-  if(!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays=tier===2?7:9;
-  const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
-  const lastPurchase=purchaseDates[purchaseDates.length-1];
-
-  let results=[];
-  let rangeStart=new Date(rebateDate);
-  while(rangeStart<=lastPurchase){
-    let rangeEnd=new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate()+periodDays);
-    const dayCounts={};
-    for(let dt of purchaseDates){
-      if(dt>=rangeStart && dt<rangeEnd){
-        let diff=dt - rebateDate;
-        let dayIndex=Math.floor(diff/(24*3600*1000));
-        let dayLabel=new Date(rebateDate);
-        dayLabel.setDate(rebateDate.getDate()+dayIndex);
-        const label=`${dayLabel.getFullYear()}-${String(dayLabel.getMonth()+1).padStart(2,'0')}-${String(dayLabel.getDate()).padStart(2,'0')}`;
-        dayCounts[label]=1;
-      }
-    }
-    results.push({start:new Date(rangeStart), end:new Date(rangeEnd), uniqueDays:Object.keys(dayCounts).sort(), totalPurchases:Object.keys(dayCounts).length});
-    rangeStart=new Date(rangeEnd);
-  }
-  renderTable(results,"#FFD700","ACORN");
-}
-
-/* RENDER TABLE */
-function renderTable(results, color, mode){
-  document.getElementById("modeLabel").innerHTML=`<span style="color:${color}">Results — ${mode} Mode</span>`;
-  let html='<table><tr><th>Range Start</th><th>Range End</th><th>Unique Days</th><th>Total Unique Days</th></tr>';
-  results.forEach(r=>{
-    const highlight=r.totalPurchases>0?'valid-range':'';
-    html+=`<tr class="${highlight}">
-      <td>${format24h(r.start)}</td>
-      <td>${format24h(r.end)}</td>
-      <td>${r.uniqueDays.join('<br>')||'-'}</td>
-      <td>${r.totalPurchases}</td>
-    </tr>`;
-  });
-  html+='</table>';
-  document.getElementById("result").innerHTML=html;
-  const ths=document.querySelectorAll("#result th");
-  ths.forEach(th=>{th.style.backgroundColor=color;th.style.color='white';});
+function format24h(dt){
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}:${String(dt.getSeconds()).padStart(2,'0')}`;
 }
 
 /* TIMEZONE CONVERTER */
-function updateTimezones() {
-  const input = document.getElementById("timezoneInput").value.trim();
-  const dt = parseLocalDate(input); // UTC input
-  if (!dt) {
-    document.getElementById("timezoneResult").innerHTML = "<p style='color:red;'>Invalid date format.</p>";
-    return;
-  }
+function updateTimezones(){
+  const dt=parseLocalDate(timezoneInput.value);
+  if(!dt){timezoneResult.innerHTML="<p style='color:red'>Invalid date</p>";return;}
 
-  const zones = {
-    "PST (Server Time)": { offset: -8, color: '#cce5ff' }, // blue
-    "MST": { offset: -7, color: '#d4edda' },               // green
-    "CST": { offset: -6, color: '#fff3cd' },               // yellow
-    "EST": { offset: -5, color: '#ffe5b4' }                // orange
+  const zones={
+    "PST (Server)":{o:-8,c:"#cce5ff"},
+    "MST":{o:-7,c:"#d4edda"},
+    "CST":{o:-6,c:"#fff3cd"},
+    "EST":{o:-5,c:"#ffe5b4"}
   };
 
-  let html = '<table style="border-collapse:collapse; width:100%;">';
-  html += '<tr style="background:#333;color:white;"><th>Timezone</th><th>Date & Time</th></tr>';
-
-  for (const tz in zones) {
-    const localDate = new Date(dt.getTime() + zones[tz].offset * 3600 * 1000);
-    const yyyy = localDate.getFullYear();
-    const mm = String(localDate.getMonth()+1).padStart(2,'0');
-    const dd = String(localDate.getDate()).padStart(2,'0');
-    const hh = String(localDate.getHours()).padStart(2,'0');
-    const mi = String(localDate.getMinutes()).padStart(2,'0');
-
-    html += `<tr style="background:${zones[tz].color};">
-      <td>${tz}</td>
-      <td>${yyyy}-${mm}-${dd} ${hh}:${mi}</td>
-    </tr>`;
+  let h="<table><tr style='background:#333;color:white'><th>Timezone</th><th>Date & Time</th></tr>";
+  for(const z in zones){
+    const d=new Date(dt.getTime()+zones[z].o*3600000);
+    h+=`<tr style="background:${zones[z].c}"><td>${z}</td><td>${format24h(d).slice(0,16)}</td></tr>`;
   }
-
-  html += '</table>';
-  document.getElementById("timezoneResult").innerHTML = html;
+  timezoneResult.innerHTML=h+"</table>";
 }
 </script>
 
-<p style="text-align:right; font-style:italic; margin-top:40px; opacity:0.8;">
-  — by: Paul P
-</p>
+<p style="text-align:right; font-style:italic; margin-top:40px;">— by: Paul P</p>
 
 </body>
 </html>
