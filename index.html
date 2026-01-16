@@ -47,6 +47,7 @@
 
       <label for="tier">2. Tier</label>
       <select id="tier">
+        <option value="1">Tier 1 (5 days)</option>
         <option value="2">Tier 2 (7 days)</option>
         <option value="3">Tier 3 (9 days)</option>
       </select>
@@ -126,7 +127,7 @@ function calculateLegends() {
 
   let rebateDate = parseLocalDate(rebateInput);
   if (!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays = tier === 2 ? 7 : 9;
+  const periodDays = tier === 1 ? 5 : tier === 2 ? 7 : 9; // ✅ Tier 1 support
   const purchaseDates = purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
   const lastPurchase = purchaseDates[purchaseDates.length-1];
 
@@ -177,7 +178,7 @@ function calculateAcorn() {
 
   const rebateDate=parseLocalDate(rebateInput);
   if(!rebateDate) return alert("Invalid rebate date format.");
-  const periodDays=tier===2?7:9;
+  const periodDays=tier===1 ? 5 : tier===2 ? 7 : 9; // ✅ Tier 1 support
 
   const purchaseDates=purchasesRaw.split(/\n+/).map(parseLocalDate).filter(Boolean).sort((a,b)=>a-b);
   const lastPurchase=purchaseDates[purchaseDates.length-1];
